@@ -10,4 +10,9 @@ export const getMe = () => api.get("/auth/me");
 
 export const updateProfile = (payload) => api.patch("/auth/me", payload);
 
+export const sendOtp = (channel) => api.post("/auth/otp/send", { channel });
+
+export const verifyOtp = (channel, code) =>
+  api.post("/auth/otp/verify", { channel, code });
+
 export const goPremium = () => api.post("/auth/premium");

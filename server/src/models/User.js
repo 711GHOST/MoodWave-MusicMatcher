@@ -14,9 +14,24 @@ const userSchema = new mongoose.Schema(
     userName: { type: String, required: true, unique: true, trim: true },
     // Never returned by default — must be explicitly selected (login flow).
     password: { type: String, required: true, select: false },
+    phone: { type: String, trim: true, default: "" },
+    emailVerified: { type: Boolean, default: false },
+    phoneVerified: { type: Boolean, default: false },
     isPremium: { type: Boolean, default: false },
     likedSongs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
     likedPlaylists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Playlist" }],
+    // One-time passcode for email/phone verification. Hashed; never returned.
+    // (Simulated channel — no real SMS/email provider is wired up.)
+    otp: {
+      type: {
+        codeHash: String,
+        channel: String, // "email" | "phone"
+        target: String, // the email/phone the code was issued for
+        expiresAt: Date,
+      },
+      select: false,
+      default: undefined,
+    },
   },
   { timestamps: true }
 );
@@ -24,6 +39,7 @@ const userSchema = new mongoose.Schema(
 userSchema.set("toJSON", {
   transform(doc, ret) {
     delete ret.password;
+    delete ret.otp;
     delete ret.__v;
     return ret;
   },

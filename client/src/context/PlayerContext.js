@@ -8,18 +8,31 @@ import {
 } from "react";
 import { Howl } from "howler";
 import { getPlaylistById } from "../api/playlists";
+import { useSettings } from "./SettingsContext";
+import { pushRecentlyPlayed } from "../utils/recentlyPlayed";
 
 const PlayerContext = createContext(null);
 
+// When "Normalize volume" is on, apply a gentle, consistent gain so loud and
+// quiet tracks play at a more even level. (Simulated — true loudness
+// normalization would use per-track ReplayGain data from the server.)
+const NORMALIZE_GAIN = 0.9;
+
 export function PlayerProvider({ children }) {
+  const { settings } = useSettings();
+  const normalizeRef = useRef(settings.normalizeVolume);
   const [queue, setQueue] = useState([]);
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
+  const [muted, setMuted] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState("off"); // "off" | "all" | "one"
+  // Sleep timer: minutes remaining (counts down) or "end" (stop after track).
+  const [sleepMinutes, setSleepMinutes] = useState(null);
+  const [sleepEndOfTrack, setSleepEndOfTrack] = useState(false);
 
   // Refs mirror state so Howl event callbacks always read current values.
   const soundRef = useRef(null);
@@ -28,7 +41,25 @@ export function PlayerProvider({ children }) {
   const repeatRef = useRef("off");
   const shuffleRef = useRef(false);
   const volumeRef = useRef(0.8);
+  const mutedRef = useRef(false);
+  const preMuteVolumeRef = useRef(0.8);
   const handleEndRef = useRef(() => {});
+  const sleepEndOfTrackRef = useRef(false);
+  const sleepDeadlineRef = useRef(null); // epoch ms when playback should pause
+
+  // Effective gain applied to Howl, honoring the mute + normalize-volume settings.
+  const effectiveVolume = useCallback((v) => {
+    if (mutedRef.current) return 0;
+    return normalizeRef.current ? v * NORMALIZE_GAIN : v;
+  }, []);
+
+  // Re-apply volume whenever the normalize setting flips.
+  useEffect(() => {
+    normalizeRef.current = settings.normalizeVolume;
+    if (soundRef.current) {
+      soundRef.current.volume(effectiveVolume(volumeRef.current));
+    }
+  }, [settings.normalizeVolume, effectiveVolume]);
 
   useEffect(() => {
     queueRef.current = queue;
@@ -78,7 +109,7 @@ export function PlayerProvider({ children }) {
     const sound = new Howl({
       src: [song.track],
       html5: true,
-      volume: volumeRef.current,
+      volume: effectiveVolume(volumeRef.current),
       onplay: () => {
         setIsPlaying(true);
         const d = sound.duration();
@@ -95,8 +126,9 @@ export function PlayerProvider({ children }) {
     });
     soundRef.current = sound;
     setProgress(0);
+    pushRecentlyPlayed(song);
     sound.play();
-  }, []);
+  }, [effectiveVolume]);
 
   const playIndex = useCallback(
     (i) => {
@@ -157,6 +189,13 @@ export function PlayerProvider({ children }) {
   const handleEnd = () => {
     const q = queueRef.current;
     const i = indexRef.current;
+    // Sleep timer set to "end of track" — stop instead of advancing.
+    if (sleepEndOfTrackRef.current) {
+      sleepEndOfTrackRef.current = false;
+      setSleepEndOfTrack(false);
+      setIsPlaying(false);
+      return;
+    }
     if (repeatRef.current === "one") {
       const s = soundRef.current;
       if (s) {
@@ -195,12 +234,41 @@ export function PlayerProvider({ children }) {
     setProgress(seconds);
   }, []);
 
-  const setVolume = useCallback((v) => {
-    const vol = Math.max(0, Math.min(1, v));
-    volumeRef.current = vol;
-    setVolumeState(vol);
-    if (soundRef.current) soundRef.current.volume(vol);
-  }, []);
+  const setVolume = useCallback(
+    (v) => {
+      const vol = Math.max(0, Math.min(1, v));
+      volumeRef.current = vol;
+      setVolumeState(vol);
+      // Dragging the slider above zero implicitly unmutes.
+      if (vol > 0 && mutedRef.current) {
+        mutedRef.current = false;
+        setMuted(false);
+      }
+      if (soundRef.current) soundRef.current.volume(effectiveVolume(vol));
+    },
+    [effectiveVolume]
+  );
+
+  const toggleMute = useCallback(() => {
+    setMuted((m) => {
+      const nextMuted = !m;
+      mutedRef.current = nextMuted;
+      if (nextMuted) {
+        preMuteVolumeRef.current = volumeRef.current || 0.8;
+      } else if (volumeRef.current === 0) {
+        // Unmuting from a zero slider restores the pre-mute level.
+        const restored = preMuteVolumeRef.current || 0.8;
+        volumeRef.current = restored;
+        setVolumeState(restored);
+      }
+      if (soundRef.current) {
+        soundRef.current.volume(
+          nextMuted ? 0 : effectiveVolume(volumeRef.current)
+        );
+      }
+      return nextMuted;
+    });
+  }, [effectiveVolume]);
 
   const toggleShuffle = useCallback(() => setShuffle((s) => !s), []);
   const cycleRepeat = useCallback(
@@ -208,6 +276,90 @@ export function PlayerProvider({ children }) {
       setRepeat((r) => (r === "off" ? "all" : r === "all" ? "one" : "off")),
     []
   );
+
+  // --- Queue manipulation ------------------------------------------------
+  // Append a song to the end of the queue (starts playback if idle).
+  const addToQueue = useCallback(
+    (song) => {
+      if (!song) return;
+      const q = queueRef.current;
+      if (!q.length) {
+        playQueue([song], 0);
+        return;
+      }
+      const nq = [...q, song];
+      queueRef.current = nq;
+      setQueue(nq);
+    },
+    [playQueue]
+  );
+
+  // Insert a song to play immediately after the current track.
+  const playNext = useCallback(
+    (song) => {
+      if (!song) return;
+      const q = queueRef.current;
+      if (!q.length) {
+        playQueue([song], 0);
+        return;
+      }
+      const at = indexRef.current + 1;
+      const nq = [...q.slice(0, at), song, ...q.slice(at)];
+      queueRef.current = nq;
+      setQueue(nq);
+    },
+    [playQueue]
+  );
+
+  const removeFromQueue = useCallback((i) => {
+    const q = queueRef.current;
+    if (i <= indexRef.current || i >= q.length) return; // only future tracks
+    const nq = [...q.slice(0, i), ...q.slice(i + 1)];
+    queueRef.current = nq;
+    setQueue(nq);
+  }, []);
+
+  // --- Sleep timer -------------------------------------------------------
+  // value: a number of minutes, the string "end" (stop after the current
+  // track finishes), or null/0 to cancel.
+  const setSleepTimer = useCallback((value) => {
+    if (value === "end") {
+      sleepEndOfTrackRef.current = true;
+      setSleepEndOfTrack(true);
+      sleepDeadlineRef.current = null;
+      setSleepMinutes(null);
+      return;
+    }
+    sleepEndOfTrackRef.current = false;
+    setSleepEndOfTrack(false);
+    if (!value) {
+      sleepDeadlineRef.current = null;
+      setSleepMinutes(null);
+      return;
+    }
+    sleepDeadlineRef.current = Date.now() + value * 60 * 1000;
+    setSleepMinutes(value);
+  }, []);
+
+  // Tick the countdown timer and pause playback when it elapses.
+  useEffect(() => {
+    if (sleepMinutes == null) return undefined;
+    const id = setInterval(() => {
+      if (!sleepDeadlineRef.current) return;
+      const remainingMs = sleepDeadlineRef.current - Date.now();
+      if (remainingMs <= 0) {
+        if (soundRef.current && soundRef.current.playing()) {
+          soundRef.current.pause();
+        }
+        sleepDeadlineRef.current = null;
+        setSleepMinutes(null);
+      } else {
+        // Re-render so the UI shows minutes remaining.
+        setSleepMinutes(Math.ceil(remainingMs / 60000));
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [sleepMinutes]);
 
   const stop = useCallback(() => {
     if (soundRef.current) {
@@ -243,8 +395,11 @@ export function PlayerProvider({ children }) {
         progress,
         duration,
         volume,
+        muted,
         shuffle,
         repeat,
+        sleepMinutes,
+        sleepEndOfTrack,
         playQueue,
         playIndex,
         playPlaylistById,
@@ -253,8 +408,13 @@ export function PlayerProvider({ children }) {
         prev,
         seekTo,
         setVolume,
+        toggleMute,
         toggleShuffle,
         cycleRepeat,
+        addToQueue,
+        playNext,
+        removeFromQueue,
+        setSleepTimer,
         stop,
       }}
     >

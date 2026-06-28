@@ -52,7 +52,7 @@ const ProfileMenu = ({ onClose }) => {
           onClick={() => go("/premium")}
         />
       )}
-      <Item icon="mdi:cog-outline" label="Settings" onClick={() => go("/profile")} />
+      <Item icon="mdi:cog-outline" label="Settings" onClick={() => go("/settings")} />
       <div className="border-t border-ink-700 my-1" />
       <Item icon="mdi:logout" label="Log out" onClick={handleLogout} />
     </div>

@@ -14,6 +14,7 @@ const strings = {
     uploadSong: "Upload Song",
     profile: "Profile",
     premium: "Premium",
+    settings: "Settings",
     logout: "Log out",
     goodMorning: "Good morning",
     goodAfternoon: "Good afternoon",

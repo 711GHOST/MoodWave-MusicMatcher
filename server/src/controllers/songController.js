@@ -2,6 +2,9 @@ const Song = require("../models/Song");
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 
+// Escape user input before using it inside a RegExp (avoids regex injection/ReDoS).
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 exports.create = asyncHandler(async (req, res) => {
   const { name, artist, thumbnail, track } = req.body;
   const song = await Song.create({
@@ -28,14 +31,14 @@ exports.getMySongs = asyncHandler(async (req, res) => {
 exports.getByArtist = asyncHandler(async (req, res) => {
   const { artistName } = req.params;
   const songs = await Song.find({
-    artist: { $regex: artistName, $options: "i" },
+    artist: { $regex: escapeRegex(artistName), $options: "i" },
   }).sort("-createdAt");
   return res.status(200).json({ data: songs });
 });
 
 exports.search = asyncHandler(async (req, res) => {
   const { query } = req.params;
-  const re = { $regex: query, $options: "i" };
+  const re = { $regex: escapeRegex(query), $options: "i" };
   const songs = await Song.find({ $or: [{ name: re }, { artist: re }] });
   return res.status(200).json({ data: songs });
 });

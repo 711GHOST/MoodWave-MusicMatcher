@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import CreatePlaylistModal from "../modals/CreatePlaylistModal";
 import AddToPlaylistModal from "../modals/AddToPlaylistModal";
 import LanguageModal from "../modals/LanguageModal";
@@ -10,11 +10,17 @@ export function UIProvider({ children }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [addState, setAddState] = useState({ open: false, songId: null });
+  // Right-hand "Now playing" panel (queue + current track).
+  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
 
   const value = {
     openCreatePlaylist: () => setCreateOpen(true),
     openLanguage: () => setLanguageOpen(true),
     openAddToPlaylist: (songId) => setAddState({ open: true, songId }),
+    nowPlayingOpen,
+    openNowPlaying: useCallback(() => setNowPlayingOpen(true), []),
+    closeNowPlaying: useCallback(() => setNowPlayingOpen(false), []),
+    toggleNowPlaying: useCallback(() => setNowPlayingOpen((o) => !o), []),
   };
 
   return (

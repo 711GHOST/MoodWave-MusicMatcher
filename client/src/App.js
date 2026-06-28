@@ -6,6 +6,7 @@ import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { PlayerProvider } from "./context/PlayerContext";
 import { UIProvider } from "./context/UIContext";
+import { SettingsProvider } from "./context/SettingsContext";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -25,6 +26,8 @@ import PlaylistView from "./pages/PlaylistView";
 import Mood from "./pages/Mood";
 import Profile from "./pages/Profile";
 import Premium from "./pages/Premium";
+import Settings from "./pages/Settings";
+import Artist from "./pages/Artist";
 
 function AppRoutes() {
   const { loading, isAuthenticated } = useAuth();
@@ -58,7 +61,9 @@ function AppRoutes() {
           <Route path="/mood" element={<Mood />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/premium" element={<Premium />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/playlist/:playlistId" element={<PlaylistView />} />
+          <Route path="/artist/:name" element={<Artist />} />
         </Route>
       </Route>
 
@@ -77,11 +82,13 @@ function App() {
         <ToastProvider>
           <LanguageProvider>
             <AuthProvider>
-              <PlayerProvider>
-                <UIProvider>
-                  <AppRoutes />
-                </UIProvider>
-              </PlayerProvider>
+              <SettingsProvider>
+                <PlayerProvider>
+                  <UIProvider>
+                    <AppRoutes />
+                  </UIProvider>
+                </PlayerProvider>
+              </SettingsProvider>
             </AuthProvider>
           </LanguageProvider>
         </ToastProvider>

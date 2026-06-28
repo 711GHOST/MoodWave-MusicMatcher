@@ -3,6 +3,7 @@ import { Icon } from "@iconify/react";
 import { getMyPlaylists } from "../api/playlists";
 import { useUI } from "../context/UIContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useSettings } from "../context/SettingsContext";
 import PlaylistCard from "../components/cards/PlaylistCard";
 import Spinner from "../components/shared/Spinner";
 import EmptyState from "../components/shared/EmptyState";
@@ -12,6 +13,12 @@ const Library = () => {
   const [loading, setLoading] = useState(true);
   const { openCreatePlaylist } = useUI();
   const { t } = useLanguage();
+  const { settings } = useSettings();
+
+  // "Use compact library layout" packs more playlists per row with tighter gaps.
+  const gridClass = settings.compactLibrary
+    ? "grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3"
+    : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4";
 
   useEffect(() => {
     getMyPlaylists()
@@ -45,7 +52,7 @@ const Library = () => {
           subtitle="Create your first playlist to see it here."
         />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className={gridClass}>
           {playlists.map((p) => (
             <PlaylistCard key={p._id} playlist={p} />
           ))}

@@ -1,15 +1,22 @@
 import { Icon } from "@iconify/react";
 import { usePlayer } from "../../context/PlayerContext";
 import { useUI } from "../../context/UIContext";
+import { useToast } from "../../context/ToastContext";
 import { artistName, onImgError } from "../../utils/format";
 
 // `onPlay` starts playback (typically playQueue(list, index)).
 // `onRemove(song)` is optional — when provided, a trash action is shown
 // (used in My Music and in playlists you own).
 const SongRow = ({ song, index, onPlay, onRemove }) => {
-  const { currentSong, isPlaying, togglePlay } = usePlayer();
+  const { currentSong, isPlaying, togglePlay, addToQueue } = usePlayer();
   const { openAddToPlaylist } = useUI();
+  const toast = useToast();
   const isCurrent = currentSong && currentSong._id === song._id;
+
+  const queueSong = () => {
+    addToQueue(song);
+    toast.success(`Added “${song.name}” to your queue.`);
+  };
 
   const handlePlay = () => {
     if (isCurrent) togglePlay();
@@ -57,6 +64,13 @@ const SongRow = ({ song, index, onPlay, onRemove }) => {
       </div>
 
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+        <button
+          onClick={queueSong}
+          aria-label="Add to queue"
+          className="text-ink-500 hover:text-white p-1"
+        >
+          <Icon icon="mdi:playlist-play" width={20} />
+        </button>
         <button
           onClick={() => openAddToPlaylist(song._id)}
           aria-label="Add to playlist"

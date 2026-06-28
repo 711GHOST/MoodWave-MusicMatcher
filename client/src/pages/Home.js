@@ -4,7 +4,13 @@ import { Icon } from "@iconify/react";
 import { getFeaturedPlaylists } from "../api/playlists";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { greetingKey } from "../utils/format";
+import { usePlayer } from "../context/PlayerContext";
+import { greetingKey, artistName, onImgError } from "../utils/format";
+import {
+  getRecentlyPlayed,
+  clearRecentlyPlayed,
+  RECENTLY_PLAYED_EVENT,
+} from "../utils/recentlyPlayed";
 import PlaylistCard from "../components/cards/PlaylistCard";
 import Spinner from "../components/shared/Spinner";
 import EmptyState from "../components/shared/EmptyState";
@@ -21,14 +27,27 @@ const Section = ({ title, children }) => (
 const Home = () => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [recent, setRecent] = useState(() => getRecentlyPlayed());
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { playQueue } = usePlayer();
 
   useEffect(() => {
     getFeaturedPlaylists()
       .then((r) => setPlaylists(r.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
+  }, []);
+
+  // Keep the "Recently played" shelf in sync as tracks start.
+  useEffect(() => {
+    const refresh = () => setRecent(getRecentlyPlayed());
+    window.addEventListener(RECENTLY_PLAYED_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(RECENTLY_PLAYED_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
   }, []);
 
   const moods = playlists.filter((p) => p.emotion);
@@ -60,6 +79,48 @@ const Home = () => {
           </div>
         </div>
       </Link>
+
+      {recent.length > 0 && (
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white">Recently played</h2>
+            <button
+              onClick={() => {
+                clearRecentlyPlayed();
+                setRecent([]);
+              }}
+              className="text-xs font-semibold text-ink-400 hover:text-white"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 mw-no-scrollbar">
+            {recent.map((song, i) => (
+              <button
+                key={song._id}
+                onClick={() => playQueue(recent, i)}
+                className="group w-36 shrink-0 text-left bg-ink-800 hover:bg-ink-700 rounded-xl p-3 transition"
+              >
+                <div className="relative mb-2">
+                  <img
+                    src={song.thumbnail}
+                    onError={onImgError}
+                    alt=""
+                    className="w-full aspect-square object-cover rounded-lg shadow-lg"
+                  />
+                  <span className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-brand text-black flex items-center justify-center shadow-xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition">
+                    <Icon icon="mdi:play" width={24} />
+                  </span>
+                </div>
+                <div className="text-sm text-white truncate">{song.name}</div>
+                <div className="text-xs text-ink-500 truncate">
+                  {artistName(song.artist)}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-16">

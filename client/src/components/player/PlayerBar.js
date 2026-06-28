@@ -20,12 +20,14 @@ const PlayerBar = () => {
     seekTo,
     volume,
     setVolume,
+    muted,
+    toggleMute,
     shuffle,
     toggleShuffle,
     repeat,
     cycleRepeat,
   } = usePlayer();
-  const { openAddToPlaylist } = useUI();
+  const { openAddToPlaylist, toggleNowPlaying, nowPlayingOpen } = useUI();
   const { user, refreshUser } = useAuth();
   const toast = useToast();
 
@@ -104,15 +106,29 @@ const PlayerBar = () => {
       </div>
 
       {/* Volume / queue */}
-      <div className="hidden md:flex items-center justify-end gap-3 w-1/4">
+      <div className="hidden md:flex items-center justify-end gap-3 w-1/4 min-w-0">
         <button
           onClick={() => openAddToPlaylist(currentSong._id)}
           aria-label="Add to playlist"
-          className="text-ink-500 hover:text-white"
+          className="text-ink-500 hover:text-white shrink-0"
         >
           <Icon icon="mdi:playlist-plus" width={22} />
         </button>
-        <VolumeControl volume={volume} onChange={setVolume} />
+        <button
+          onClick={toggleNowPlaying}
+          aria-label="Now playing queue"
+          className={`shrink-0 ${
+            nowPlayingOpen ? "text-brand" : "text-ink-500 hover:text-white"
+          }`}
+        >
+          <Icon icon="mdi:playlist-music" width={22} />
+        </button>
+        <VolumeControl
+          volume={volume}
+          onChange={setVolume}
+          muted={muted}
+          onToggleMute={toggleMute}
+        />
       </div>
     </footer>
   );

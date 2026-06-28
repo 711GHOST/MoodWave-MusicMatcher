@@ -41,9 +41,46 @@ router.patch(
       .trim()
       .notEmpty()
       .withMessage("First name cannot be empty"),
+    body("email")
+      .optional()
+      .isEmail()
+      .withMessage("A valid email is required"),
+    body("phone")
+      .optional({ checkFalsy: false })
+      .trim()
+      .custom((v) => v === "" || /^[+()\-\s\d]{7,20}$/.test(v))
+      .withMessage("Enter a valid phone number"),
   ],
   validate,
   authController.updateMe
+);
+
+router.post(
+  "/otp/send",
+  requireAuth,
+  [
+    body("channel")
+      .isIn(["email", "phone"])
+      .withMessage("Channel must be email or phone"),
+  ],
+  validate,
+  authController.sendOtp
+);
+
+router.post(
+  "/otp/verify",
+  requireAuth,
+  [
+    body("channel")
+      .isIn(["email", "phone"])
+      .withMessage("Channel must be email or phone"),
+    body("code")
+      .trim()
+      .isLength({ min: 6, max: 6 })
+      .withMessage("Enter the 6-digit code"),
+  ],
+  validate,
+  authController.verifyOtp
 );
 
 router.post("/premium", requireAuth, authController.goPremium);

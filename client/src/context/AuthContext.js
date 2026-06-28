@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useCookies } from "react-cookie";
 import { setAuthToken } from "../api/client";
 import * as authApi from "../api/auth";
+import { clearRecentlyPlayed } from "../utils/recentlyPlayed";
 
 const AuthContext = createContext(null);
 
@@ -57,6 +58,8 @@ export function AuthProvider({ children }) {
     setAuthToken(null);
     setUser(null);
     setJustRegistered(false);
+    // Don't leak listening history to the next account on a shared browser.
+    clearRecentlyPlayed();
   };
 
   const refreshUser = async () => {
@@ -69,6 +72,15 @@ export function AuthProvider({ children }) {
     const data = await authApi.updateProfile(payload);
     setUser(data.user);
     return data.user;
+  };
+
+  // Returns the server payload (includes a demo `devCode`).
+  const sendOtp = (channel) => authApi.sendOtp(channel);
+
+  const verifyOtp = async (channel, code) => {
+    const data = await authApi.verifyOtp(channel, code);
+    if (data.user) setUser(data.user);
+    return data;
   };
 
   const goPremium = async () => {
@@ -90,6 +102,8 @@ export function AuthProvider({ children }) {
         logout,
         refreshUser,
         updateProfile,
+        sendOtp,
+        verifyOtp,
         goPremium,
       }}
     >

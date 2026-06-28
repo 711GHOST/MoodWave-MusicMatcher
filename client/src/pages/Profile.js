@@ -7,6 +7,7 @@ import { getMyPlaylists } from "../api/playlists";
 import { getMySongs } from "../api/songs";
 import TextInput from "../components/shared/TextInput";
 import Spinner from "../components/shared/Spinner";
+import OtpModal from "../modals/OtpModal";
 
 const Stat = ({ label, value, icon }) => (
   <div className="bg-ink-800 rounded-xl p-5 flex items-center gap-4">
@@ -18,10 +19,26 @@ const Stat = ({ label, value, icon }) => (
   </div>
 );
 
-const Row = ({ k, v }) => (
-  <div className="flex justify-between border-b border-ink-800 pb-2">
-    <dt className="text-ink-400">{k}</dt>
-    <dd className="text-white font-medium">{v}</dd>
+// A read-only contact row with a verified badge or a "Verify" action.
+const ContactRow = ({ label, value, verified, onVerify, verifyLabel }) => (
+  <div className="flex items-center justify-between gap-3 border-b border-ink-800 pb-2">
+    <dt className="text-ink-400">{label}</dt>
+    <dd className="flex items-center gap-2 text-white font-medium min-w-0">
+      <span className="truncate">{value || "—"}</span>
+      {value &&
+        (verified ? (
+          <span className="flex items-center gap-1 text-xs text-brand font-semibold shrink-0">
+            <Icon icon="mdi:check-decagram" width={16} /> Verified
+          </span>
+        ) : (
+          <button
+            onClick={onVerify}
+            className="text-xs font-bold text-black bg-brand hover:bg-brand-light px-2.5 py-1 rounded-full shrink-0 transition"
+          >
+            {verifyLabel || "Verify"}
+          </button>
+        ))}
+    </dd>
   </div>
 );
 
@@ -32,7 +49,11 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName || "");
   const [lastName, setLastName] = useState(user?.lastName || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState(user?.phone || "");
   const [saving, setSaving] = useState(false);
+  // { channel, target } when an OTP modal is open.
+  const [otp, setOtp] = useState(null);
 
   useEffect(() => {
     Promise.all([getMyPlaylists(), getMySongs()])
@@ -41,6 +62,14 @@ const Profile = () => {
       )
       .catch(() => {});
   }, []);
+
+  // Keep local edit fields in sync if the user object changes (e.g. after verify).
+  useEffect(() => {
+    if (!editing) {
+      setEmail(user?.email || "");
+      setPhone(user?.phone || "");
+    }
+  }, [user, editing]);
 
   const initials = (user?.firstName?.[0] || "U").toUpperCase();
   const memberSince = user?.createdAt
@@ -56,9 +85,18 @@ const Profile = () => {
       toast.error("First name can't be empty.");
       return;
     }
+    if (!email.trim()) {
+      toast.error("Email can't be empty.");
+      return;
+    }
     setSaving(true);
     try {
-      await updateProfile({ firstName: firstName.trim(), lastName: lastName.trim() });
+      await updateProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+      });
       toast.success("Profile updated.");
       setEditing(false);
     } catch (e) {
@@ -66,6 +104,14 @@ const Profile = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setFirstName(user.firstName);
+    setLastName(user.lastName);
+    setEmail(user.email || "");
+    setPhone(user.phone || "");
   };
 
   return (
@@ -117,6 +163,24 @@ const Profile = () => {
               <TextInput label="First name" value={firstName} onChange={setFirstName} />
               <TextInput label="Last name" value={lastName} onChange={setLastName} />
             </div>
+            <TextInput
+              label="Email"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              autoComplete="email"
+            />
+            <TextInput
+              label="Phone number"
+              type="tel"
+              placeholder="e.g. +1 555 123 4567"
+              value={phone}
+              onChange={setPhone}
+              autoComplete="tel"
+            />
+            <p className="text-xs text-ink-500">
+              Changing your email or phone will require re-verification.
+            </p>
             <div className="flex gap-3">
               <button
                 onClick={save}
@@ -125,32 +189,73 @@ const Profile = () => {
               >
                 {saving ? <Spinner size={18} className="text-black" /> : "Save"}
               </button>
-              <button
-                onClick={() => {
-                  setEditing(false);
-                  setFirstName(user.firstName);
-                  setLastName(user.lastName);
-                }}
-                className="text-ink-400 hover:text-white px-4"
-              >
+              <button onClick={cancel} className="text-ink-400 hover:text-white px-4">
                 Cancel
               </button>
             </div>
           </div>
         ) : (
           <dl className="space-y-3 text-sm">
-            <Row k="Name" v={`${user?.firstName} ${user?.lastName}`} />
-            <Row k="Username" v={`@${user?.userName}`} />
-            <Row k="Email" v={user?.email} />
-            <Row k="Plan" v={user?.isPremium ? "Premium" : "Free"} />
+            <div className="flex justify-between border-b border-ink-800 pb-2">
+              <dt className="text-ink-400">Name</dt>
+              <dd className="text-white font-medium">
+                {user?.firstName} {user?.lastName}
+              </dd>
+            </div>
+            <div className="flex justify-between border-b border-ink-800 pb-2">
+              <dt className="text-ink-400">Username</dt>
+              <dd className="text-white font-medium">@{user?.userName}</dd>
+            </div>
+            <ContactRow
+              label="Email"
+              value={user?.email}
+              verified={user?.emailVerified}
+              onVerify={() => setOtp({ channel: "email", target: user.email })}
+            />
+            <ContactRow
+              label="Phone"
+              value={user?.phone}
+              verified={user?.phoneVerified}
+              onVerify={() => setOtp({ channel: "phone", target: user.phone })}
+            />
+            <div className="flex justify-between border-b border-ink-800 pb-2">
+              <dt className="text-ink-400">Plan</dt>
+              <dd className="text-white font-medium">
+                {user?.isPremium ? "Premium" : "Free"}
+              </dd>
+            </div>
           </dl>
         )}
+        {!editing && !user?.phone && (
+          <button
+            onClick={() => setEditing(true)}
+            className="mt-4 flex items-center gap-2 text-sm text-brand font-semibold hover:underline"
+          >
+            <Icon icon="mdi:phone-plus" width={18} /> Add a phone number
+          </button>
+        )}
       </div>
+
+      <Link
+        to="/settings"
+        className="mt-4 flex items-center justify-between gap-4 rounded-2xl p-5 bg-ink-850 border border-ink-800 hover:border-brand transition"
+      >
+        <div className="flex items-center gap-3">
+          <Icon icon="mdi:cog-outline" width={24} className="text-ink-300" />
+          <div>
+            <div className="font-bold text-white">Settings</div>
+            <div className="text-sm text-ink-400">
+              Audio quality, language, playback, privacy and more.
+            </div>
+          </div>
+        </div>
+        <Icon icon="mdi:chevron-right" width={24} className="text-ink-400" />
+      </Link>
 
       {!user?.isPremium && (
         <Link
           to="/premium"
-          className="mt-6 block rounded-2xl p-6 bg-gradient-to-r from-brand/20 to-accent/20 border border-ink-800 hover:border-brand transition"
+          className="mt-4 block rounded-2xl p-6 bg-gradient-to-r from-brand/20 to-accent/20 border border-ink-800 hover:border-brand transition"
         >
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -162,6 +267,15 @@ const Profile = () => {
             <Icon icon="mdi:crown" width={28} className="text-brand" />
           </div>
         </Link>
+      )}
+
+      {otp && (
+        <OtpModal
+          channel={otp.channel}
+          target={otp.target}
+          onClose={() => setOtp(null)}
+          onVerified={() => setOtp(null)}
+        />
       )}
     </div>
   );
