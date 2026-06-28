@@ -9,6 +9,8 @@ export function AuthProvider({ children }) {
   const [cookies, setCookie, removeCookie] = useCookies(["token"]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // True only right after a fresh sign-up — drives the welcome modal.
+  const [justRegistered, setJustRegistered] = useState(false);
 
   // Restore a session from the cookie on first load.
   useEffect(() => {
@@ -46,6 +48,7 @@ export function AuthProvider({ children }) {
   const signup = async (payload) => {
     const data = await authApi.register(payload);
     persistSession(data.token, data.user);
+    if (data.isNewUser) setJustRegistered(true);
     return data.user;
   };
 
@@ -53,10 +56,23 @@ export function AuthProvider({ children }) {
     removeCookie("token", { path: "/" });
     setAuthToken(null);
     setUser(null);
+    setJustRegistered(false);
   };
 
   const refreshUser = async () => {
     const data = await authApi.getMe();
+    setUser(data.user);
+    return data.user;
+  };
+
+  const updateProfile = async (payload) => {
+    const data = await authApi.updateProfile(payload);
+    setUser(data.user);
+    return data.user;
+  };
+
+  const goPremium = async () => {
+    const data = await authApi.goPremium();
     setUser(data.user);
     return data.user;
   };
@@ -67,10 +83,14 @@ export function AuthProvider({ children }) {
         user,
         isAuthenticated: !!user,
         loading,
+        justRegistered,
+        clearJustRegistered: () => setJustRegistered(false),
         login,
         signup,
         logout,
         refreshUser,
+        updateProfile,
+        goPremium,
       }}
     >
       {children}

@@ -14,3 +14,4 @@ coverage/
 # Misc
 *.log
 .DS_Store
+HANDOFF.md

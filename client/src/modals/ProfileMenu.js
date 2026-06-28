@@ -8,6 +8,11 @@ const ProfileMenu = ({ onClose }) => {
   const { user, logout } = useAuth();
   const { stop } = usePlayer();
 
+  const go = (path) => {
+    onClose();
+    navigate(path);
+  };
+
   const handleLogout = () => {
     stop();
     logout();
@@ -27,14 +32,27 @@ const ProfileMenu = ({ onClose }) => {
   return (
     <div className="absolute right-0 top-12 w-56 bg-ink-800 border border-ink-700 rounded-xl shadow-2xl p-2 z-30 animate-scale-in">
       <div className="px-3 py-2 border-b border-ink-700 mb-1">
-        <div className="text-white font-semibold text-sm truncate">
+        <div className="text-white font-semibold text-sm truncate flex items-center gap-2">
           {user?.firstName} {user?.lastName}
+          {user?.isPremium && (
+            <span className="text-[10px] bg-brand text-black font-bold px-1.5 py-0.5 rounded-full">
+              PREMIUM
+            </span>
+          )}
         </div>
         <div className="text-ink-500 text-xs truncate">{user?.email}</div>
       </div>
-      <Item icon="mdi:account-outline" label="Profile" onClick={onClose} />
-      <Item icon="mdi:cog-outline" label="Settings" onClick={onClose} />
-      <Item icon="mdi:crown-outline" label="Upgrade to Premium" onClick={onClose} />
+      <Item icon="mdi:account-outline" label="Profile" onClick={() => go("/profile")} />
+      {user?.isPremium ? (
+        <Item icon="mdi:crown" label="Premium active" onClick={() => go("/premium")} />
+      ) : (
+        <Item
+          icon="mdi:crown-outline"
+          label="Upgrade to Premium"
+          onClick={() => go("/premium")}
+        />
+      )}
+      <Item icon="mdi:cog-outline" label="Settings" onClick={() => go("/profile")} />
       <div className="border-t border-ink-700 my-1" />
       <Item icon="mdi:logout" label="Log out" onClick={handleLogout} />
     </div>

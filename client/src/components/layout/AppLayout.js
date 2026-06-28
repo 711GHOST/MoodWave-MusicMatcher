@@ -4,10 +4,13 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import MobileNav from "./MobileNav";
 import PlayerBar from "../player/PlayerBar";
+import WelcomeModal from "../../modals/WelcomeModal";
 import { usePlayer } from "../../context/PlayerContext";
+import { useAuth } from "../../context/AuthContext";
 
 const AppLayout = () => {
   const { currentSong } = usePlayer();
+  const { user, justRegistered, clearJustRegistered } = useAuth();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
 
@@ -30,6 +33,10 @@ const AppLayout = () => {
       {currentSong && <PlayerBar />}
       {/* Bottom tab bar — mobile only */}
       <MobileNav />
+      {/* First-time welcome */}
+      {justRegistered && (
+        <WelcomeModal name={user?.firstName} onClose={clearJustRegistered} />
+      )}
     </div>
   );
 };

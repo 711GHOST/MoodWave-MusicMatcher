@@ -1,6 +1,7 @@
 import { api } from "./client";
 
 export const getMyPlaylists = () => api.get("/playlist/get/me");
+export const getFeaturedPlaylists = () => api.get("/playlist/get/featured");
 export const getPlaylistById = (id) => api.get(`/playlist/get/playlist/${id}`);
 export const getPlaylistByEmotion = (emotion) =>
   api.get(`/playlist/get/emotion/${encodeURIComponent(emotion)}`);

@@ -21,6 +21,8 @@ const playlistSchema = new mongoose.Schema(
     // Set for the seeded mood playlists; null for ordinary user playlists.
     emotion: { type: String, enum: [...EMOTIONS, null], default: null, index: true },
     isPublic: { type: Boolean, default: true },
+    // Built-in catalog playlists shown on Home for everyone.
+    isFeatured: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

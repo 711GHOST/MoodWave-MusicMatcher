@@ -32,4 +32,20 @@ router.post(
 
 router.get("/me", requireAuth, authController.me);
 
+router.patch(
+  "/me",
+  requireAuth,
+  [
+    body("firstName")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("First name cannot be empty"),
+  ],
+  validate,
+  authController.updateMe
+);
+
+router.post("/premium", requireAuth, authController.goPremium);
+
 module.exports = router;

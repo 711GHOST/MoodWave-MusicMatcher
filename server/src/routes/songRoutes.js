@@ -12,6 +12,10 @@ router.post(
   "/create",
   [
     body("name").trim().notEmpty().withMessage("Song name is required"),
+    body("artist")
+      .trim()
+      .notEmpty()
+      .withMessage("Artist / singer name is required"),
     body("thumbnail").trim().notEmpty().withMessage("Thumbnail is required"),
     body("track").trim().notEmpty().withMessage("Track URL is required"),
   ],
@@ -22,7 +26,7 @@ router.post(
 router.get("/get/allsongs", songController.getAll);
 router.get("/get/mysongs", songController.getMySongs);
 router.get("/get/liked", songController.getLiked);
-router.get("/get/artist/:artistId", songController.getByArtist);
+router.get("/get/artist/:artistName", songController.getByArtist);
 router.get("/get/songname/:query", songController.search);
 
 router.post("/like/:songId", songController.toggleLike);

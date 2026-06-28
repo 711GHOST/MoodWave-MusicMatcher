@@ -1,5 +1,11 @@
-import { createContext, useCallback, useContext, useState } from "react";
-import strings from "../i18n/strings";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import strings, { RTL_LANGUAGES } from "../i18n/strings";
 
 const LanguageContext = createContext(null);
 const STORAGE_KEY = "mw_language";
@@ -14,6 +20,16 @@ export function LanguageProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, lang);
   }, []);
 
+  // Flip text direction for right-to-left languages.
+  useEffect(() => {
+    const rtl = RTL_LANGUAGES.has(language);
+    document.documentElement.dir = rtl ? "rtl" : "ltr";
+    document.documentElement.lang = language;
+    return () => {
+      document.documentElement.dir = "ltr";
+    };
+  }, [language]);
+
   // Translate a key, falling back to English then to the raw key.
   const t = useCallback(
     (key) =>
@@ -23,8 +39,10 @@ export function LanguageProvider({ children }) {
     [language]
   );
 
+  const isRTL = RTL_LANGUAGES.has(language);
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, isRTL }}>
       {children}
     </LanguageContext.Provider>
   );

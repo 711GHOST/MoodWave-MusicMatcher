@@ -27,7 +27,8 @@ exports.register = asyncHandler(async (req, res) => {
   });
 
   const token = signToken(user);
-  return res.status(201).json({ user: user.toJSON(), token });
+  // isNewUser drives the first-time welcome modal on the client.
+  return res.status(201).json({ user: user.toJSON(), token, isNewUser: true });
 });
 
 exports.login = asyncHandler(async (req, res) => {
@@ -54,7 +55,22 @@ exports.login = asyncHandler(async (req, res) => {
 });
 
 exports.me = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id)
-    .populate({ path: "likedSongs", populate: { path: "artist", model: "User" } });
+  const user = await User.findById(req.user._id).populate("likedSongs");
+  return res.status(200).json({ user: user.toJSON() });
+});
+
+exports.updateMe = asyncHandler(async (req, res) => {
+  const { firstName, lastName } = req.body;
+  const user = await User.findById(req.user._id);
+  if (firstName !== undefined) user.firstName = firstName;
+  if (lastName !== undefined) user.lastName = lastName;
+  await user.save();
+  return res.status(200).json({ user: user.toJSON() });
+});
+
+exports.goPremium = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  user.isPremium = true;
+  await user.save();
   return res.status(200).json({ user: user.toJSON() });
 });

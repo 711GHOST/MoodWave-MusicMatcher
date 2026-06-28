@@ -3,10 +3,8 @@ const Song = require("../models/Song");
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 
-const populateSongs = {
-  path: "songs",
-  populate: { path: "artist", model: "User" },
-};
+// Song.artist is now a plain string, so a simple "songs" populate is enough.
+const populateSongs = "songs";
 
 const canEdit = (playlist, userId) =>
   playlist.owner.equals(userId) ||
@@ -22,6 +20,14 @@ exports.create = asyncHandler(async (req, res) => {
     collaborators: [],
   });
   return res.status(201).json(playlist);
+});
+
+// Built-in catalog playlists shown on Home for everyone.
+exports.getFeatured = asyncHandler(async (req, res) => {
+  const playlists = await Playlist.find({ isFeatured: true })
+    .populate("owner")
+    .sort("createdAt");
+  return res.status(200).json({ data: playlists });
 });
 
 exports.getById = asyncHandler(async (req, res) => {

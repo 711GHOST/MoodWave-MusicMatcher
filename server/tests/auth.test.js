@@ -14,12 +14,16 @@ const user = {
   password: "secret123",
 };
 
+const bearer = (token) => ({ Authorization: `Bearer ${token}` });
+
 describe("Auth", () => {
-  test("registers a new user and returns a token (no password leaked)", async () => {
+  test("registers a new user and flags isNewUser (no password leaked)", async () => {
     const res = await request(app).post("/auth/register").send(user);
     expect(res.status).toBe(201);
     expect(res.body.token).toBeDefined();
+    expect(res.body.isNewUser).toBe(true);
     expect(res.body.user.email).toBe("test@example.com");
+    expect(res.body.user.isPremium).toBe(false);
     expect(res.body.user.password).toBeUndefined();
   });
 
@@ -64,10 +68,29 @@ describe("Auth", () => {
     expect(unauth.status).toBe(401);
 
     const reg = await request(app).post("/auth/register").send(user);
-    const res = await request(app)
-      .get("/auth/me")
-      .set("Authorization", `Bearer ${reg.body.token}`);
+    const res = await request(app).get("/auth/me").set(bearer(reg.body.token));
     expect(res.status).toBe(200);
     expect(res.body.user.userName).toBe("tester");
+  });
+
+  test("updates the profile name via PATCH /auth/me", async () => {
+    const reg = await request(app).post("/auth/register").send(user);
+    const res = await request(app)
+      .patch("/auth/me")
+      .set(bearer(reg.body.token))
+      .send({ firstName: "Renamed", lastName: "Person" });
+    expect(res.status).toBe(200);
+    expect(res.body.user.firstName).toBe("Renamed");
+    expect(res.body.user.lastName).toBe("Person");
+  });
+
+  test("upgrades the account to premium", async () => {
+    const reg = await request(app).post("/auth/register").send(user);
+    expect(reg.body.user.isPremium).toBe(false);
+    const res = await request(app)
+      .post("/auth/premium")
+      .set(bearer(reg.body.token));
+    expect(res.status).toBe(200);
+    expect(res.body.user.isPremium).toBe(true);
   });
 });

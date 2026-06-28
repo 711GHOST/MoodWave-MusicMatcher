@@ -50,6 +50,8 @@ const SidebarContent = ({ onNavigate }) => {
         <NavRow icon="mdi:heart" label={t("likedSongs")} to="/liked" active={pathname === "/liked"} onClick={go} />
         <NavRow icon="mdi:emoticon-happy-outline" label={t("checkMood")} to="/mood" active={pathname === "/mood"} onClick={go} />
         <NavRow icon="mdi:cloud-upload" label={t("uploadSong")} to="/upload" active={pathname === "/upload"} onClick={go} />
+        <NavRow icon="mdi:account-circle" label={t("profile")} to="/profile" active={pathname === "/profile"} onClick={go} />
+        <NavRow icon="mdi:crown" label={t("premium")} to="/premium" active={pathname === "/premium"} onClick={go} />
 
         <div className="mt-auto pt-4">
           <button

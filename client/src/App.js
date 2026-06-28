@@ -23,6 +23,8 @@ import LikedSongs from "./pages/LikedSongs";
 import UploadSong from "./pages/UploadSong";
 import PlaylistView from "./pages/PlaylistView";
 import Mood from "./pages/Mood";
+import Profile from "./pages/Profile";
+import Premium from "./pages/Premium";
 
 function AppRoutes() {
   const { loading, isAuthenticated } = useAuth();
@@ -54,6 +56,8 @@ function AppRoutes() {
           <Route path="/liked" element={<LikedSongs />} />
           <Route path="/upload" element={<UploadSong />} />
           <Route path="/mood" element={<Mood />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/premium" element={<Premium />} />
           <Route path="/playlist/:playlistId" element={<PlaylistView />} />
         </Route>
       </Route>

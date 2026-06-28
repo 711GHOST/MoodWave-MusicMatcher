@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getMySongs } from "../api/songs";
+import { getMySongs, deleteSong } from "../api/songs";
 import { usePlayer } from "../context/PlayerContext";
+import { useToast } from "../context/ToastContext";
 import SongRow from "../components/cards/SongRow";
 import Spinner from "../components/shared/Spinner";
 import EmptyState from "../components/shared/EmptyState";
@@ -10,6 +11,7 @@ const MyMusic = () => {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const { playQueue } = usePlayer();
+  const toast = useToast();
 
   useEffect(() => {
     getMySongs()
@@ -17,6 +19,16 @@ const MyMusic = () => {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleRemove = async (song) => {
+    try {
+      await deleteSong(song._id);
+      setSongs((prev) => prev.filter((s) => s._id !== song._id));
+      toast.success("Song deleted.");
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
 
   return (
     <div className="pt-6">
@@ -48,6 +60,7 @@ const MyMusic = () => {
               song={s}
               index={i}
               onPlay={() => playQueue(songs, i)}
+              onRemove={handleRemove}
             />
           ))}
         </div>

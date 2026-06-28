@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@iconify/react";
-import { getMyPlaylists } from "../api/playlists";
+import { getFeaturedPlaylists } from "../api/playlists";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { greetingKey } from "../utils/format";
@@ -25,7 +25,7 @@ const Home = () => {
   const { t } = useLanguage();
 
   useEffect(() => {
-    getMyPlaylists()
+    getFeaturedPlaylists()
       .then((r) => setPlaylists(r.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));

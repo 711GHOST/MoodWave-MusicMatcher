@@ -30,12 +30,14 @@ async function seedDatabase() {
     userByKey[u.key] = users[i];
   });
 
-  // Songs.
+  // Songs — `artist` is the performing-artist string; uploadedBy is the system.
+  const uploader = userByKey[data.songUploader]._id;
   const songDocs = data.songs.map((s) => ({
     name: s.name,
+    artist: s.artist,
     thumbnail: s.thumbnail,
     track: s.track,
-    artist: userByKey[s.artist]._id,
+    uploadedBy: uploader,
   }));
   const songs = await Song.create(songDocs);
   const songByName = {};
@@ -43,13 +45,14 @@ async function seedDatabase() {
     songByName[s.name] = s;
   });
 
-  // Playlists.
+  // Playlists — built-in catalog, marked featured.
   const owner = userByKey[data.playlistOwner]._id;
   const playlistDocs = data.playlists.map((p) => ({
     name: p.name,
     thumbnail: p.thumbnail,
     owner,
     emotion: p.emotion || null,
+    isFeatured: true,
     songs: p.songs.map((name) => songByName[name]?._id).filter(Boolean),
   }));
   await Playlist.create(playlistDocs);

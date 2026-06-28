@@ -52,12 +52,21 @@ const Topbar = ({ onMenu }) => {
         >
           Upload
         </Link>
-        <a
-          href="#premium"
-          className="hidden md:block text-sm font-semibold text-ink-500 hover:text-white"
-        >
-          Premium
-        </a>
+        {user?.isPremium ? (
+          <Link
+            to="/premium"
+            className="hidden sm:flex items-center gap-1 text-xs font-bold bg-brand/15 text-brand px-3 py-1.5 rounded-full"
+          >
+            <Icon icon="mdi:crown" width={14} /> Premium
+          </Link>
+        ) : (
+          <Link
+            to="/premium"
+            className="hidden md:block text-sm font-semibold text-ink-500 hover:text-white"
+          >
+            Premium
+          </Link>
+        )}
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen((o) => !o)}

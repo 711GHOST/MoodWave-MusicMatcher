@@ -18,6 +18,7 @@ router.post(
   playlistController.create
 );
 
+router.get("/get/featured", playlistController.getFeatured);
 router.get("/get/me", playlistController.getMine);
 router.get("/get/playlist/:playlistId", playlistController.getById);
 router.get("/get/artist/:artistId", playlistController.getByArtist);

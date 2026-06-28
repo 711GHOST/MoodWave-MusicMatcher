@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema(
     userName: { type: String, required: true, unique: true, trim: true },
     // Never returned by default — must be explicitly selected (login flow).
     password: { type: String, required: true, select: false },
+    isPremium: { type: Boolean, default: false },
     likedSongs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
     likedPlaylists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Playlist" }],
   },

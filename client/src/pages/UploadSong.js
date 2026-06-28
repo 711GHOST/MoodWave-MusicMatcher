@@ -9,6 +9,7 @@ import { useToast } from "../context/ToastContext";
 
 const UploadSong = () => {
   const [name, setName] = useState("");
+  const [artist, setArtist] = useState("");
   const [thumbnail, setThumbnail] = useState("");
   const [trackUrl, setTrackUrl] = useState("");
   const [trackName, setTrackName] = useState("");
@@ -17,14 +18,17 @@ const UploadSong = () => {
   const navigate = useNavigate();
 
   const submit = async () => {
-    if (!name.trim() || !thumbnail.trim() || !trackUrl.trim()) {
-      toast.error("Add a name, a cover image URL, and an audio track.");
+    if (!name.trim() || !artist.trim() || !thumbnail.trim() || !trackUrl.trim()) {
+      toast.error("Add a song name, artist, cover image, and an audio track.");
       return;
     }
     setSaving(true);
     try {
       await createSong({
         name: name.trim(),
+        // The performing artist is whoever sang it — entered here, not the
+        // uploader's account name.
+        artist: artist.trim(),
         thumbnail: thumbnail.trim(),
         track: trackUrl.trim(),
       });
@@ -52,12 +56,19 @@ const UploadSong = () => {
             onChange={setName}
           />
           <TextInput
-            label="Cover image URL"
-            placeholder="https://..."
-            value={thumbnail}
-            onChange={setThumbnail}
+            label="Artist / singer"
+            placeholder="Who performed this song?"
+            value={artist}
+            onChange={setArtist}
           />
         </div>
+
+        <TextInput
+          label="Cover image URL"
+          placeholder="https://..."
+          value={thumbnail}
+          onChange={setThumbnail}
+        />
 
         <div>
           <div className="text-sm font-semibold text-white mb-2">

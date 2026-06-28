@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
-import { getPlaylistById } from "../api/playlists";
+import {
+  getPlaylistById,
+  deletePlaylist,
+  removeSongFromPlaylist,
+} from "../api/playlists";
 import { usePlayer } from "../context/PlayerContext";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { artistName, onImgError } from "../utils/format";
 import SongRow from "../components/cards/SongRow";
 import Spinner from "../components/shared/Spinner";
@@ -10,6 +16,9 @@ import EmptyState from "../components/shared/EmptyState";
 
 const PlaylistView = () => {
   const { playlistId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const toast = useToast();
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
   const { playQueue, currentSong, isPlaying, togglePlay } = usePlayer();
@@ -42,12 +51,35 @@ const PlaylistView = () => {
   }
 
   const songs = playlist.songs || [];
+  const ownerId = playlist.owner?._id || playlist.owner;
+  const isOwner = user && ownerId === user._id;
   const playingThis =
     currentSong && songs.some((s) => s._id === currentSong._id);
 
   const onBigPlay = () => {
     if (playingThis) togglePlay();
     else if (songs.length) playQueue(songs, 0);
+  };
+
+  const handleDeletePlaylist = async () => {
+    try {
+      await deletePlaylist(playlist._id);
+      toast.success("Playlist deleted.");
+      navigate("/library");
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleRemoveSong = async (song) => {
+    try {
+      const updated = await removeSongFromPlaylist(playlist._id, song._id);
+      // Keep the populated owner; just swap the songs array.
+      setPlaylist((prev) => ({ ...prev, songs: updated.songs }));
+      toast.success("Removed from playlist.");
+    } catch (e) {
+      toast.error(e.message);
+    }
   };
 
   return (
@@ -73,17 +105,29 @@ const PlaylistView = () => {
         </div>
       </div>
 
-      {songs.length > 0 && (
-        <button
-          onClick={onBigPlay}
-          className="mb-6 w-14 h-14 rounded-full bg-brand text-black flex items-center justify-center shadow-xl hover:scale-105 transition"
-          aria-label={playingThis && isPlaying ? "Pause playlist" : "Play playlist"}
-        >
-          <Icon
-            icon={playingThis && isPlaying ? "mdi:pause" : "mdi:play"}
-            width={32}
-          />
-        </button>
+      {(songs.length > 0 || isOwner) && (
+        <div className="flex items-center gap-4 mb-6">
+          {songs.length > 0 && (
+            <button
+              onClick={onBigPlay}
+              className="w-14 h-14 rounded-full bg-brand text-black flex items-center justify-center shadow-xl hover:scale-105 transition"
+              aria-label={playingThis && isPlaying ? "Pause playlist" : "Play playlist"}
+            >
+              <Icon
+                icon={playingThis && isPlaying ? "mdi:pause" : "mdi:play"}
+                width={32}
+              />
+            </button>
+          )}
+          {isOwner && (
+            <button
+              onClick={handleDeletePlaylist}
+              className="flex items-center gap-1 text-sm font-semibold text-ink-400 hover:text-red-400 transition"
+            >
+              <Icon icon="mdi:trash-can-outline" width={20} /> Delete playlist
+            </button>
+          )}
+        </div>
       )}
 
       {songs.length === 0 ? (
@@ -100,6 +144,7 @@ const PlaylistView = () => {
               song={s}
               index={i}
               onPlay={() => playQueue(songs, i)}
+              onRemove={isOwner ? handleRemoveSong : undefined}
             />
           ))}
         </div>

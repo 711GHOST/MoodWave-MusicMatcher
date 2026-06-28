@@ -3,8 +3,10 @@ import { usePlayer } from "../../context/PlayerContext";
 import { useUI } from "../../context/UIContext";
 import { artistName, onImgError } from "../../utils/format";
 
-// `onPlay` should start playback (typically playQueue(list, index)).
-const SongRow = ({ song, index, onPlay }) => {
+// `onPlay` starts playback (typically playQueue(list, index)).
+// `onRemove(song)` is optional — when provided, a trash action is shown
+// (used in My Music and in playlists you own).
+const SongRow = ({ song, index, onPlay, onRemove }) => {
   const { currentSong, isPlaying, togglePlay } = usePlayer();
   const { openAddToPlaylist } = useUI();
   const isCurrent = currentSong && currentSong._id === song._id;
@@ -16,7 +18,7 @@ const SongRow = ({ song, index, onPlay }) => {
 
   return (
     <div
-      className={`group grid grid-cols-[2rem_1fr_2.5rem] items-center gap-3 px-3 py-2 rounded-md hover:bg-ink-700/50 transition ${
+      className={`group grid grid-cols-[2rem_1fr_auto] items-center gap-3 px-3 py-2 rounded-md hover:bg-ink-700/50 transition ${
         isCurrent ? "bg-ink-700/30" : ""
       }`}
     >
@@ -54,13 +56,24 @@ const SongRow = ({ song, index, onPlay }) => {
         </div>
       </div>
 
-      <button
-        onClick={() => openAddToPlaylist(song._id)}
-        aria-label="Add to playlist"
-        className="text-ink-500 hover:text-white opacity-0 group-hover:opacity-100 transition"
-      >
-        <Icon icon="mdi:playlist-plus" width={20} />
-      </button>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+        <button
+          onClick={() => openAddToPlaylist(song._id)}
+          aria-label="Add to playlist"
+          className="text-ink-500 hover:text-white p-1"
+        >
+          <Icon icon="mdi:playlist-plus" width={20} />
+        </button>
+        {onRemove && (
+          <button
+            onClick={() => onRemove(song)}
+            aria-label="Remove song"
+            className="text-ink-500 hover:text-red-400 p-1"
+          >
+            <Icon icon="mdi:trash-can-outline" width={18} />
+          </button>
+        )}
+      </div>
     </div>
   );
 };

@@ -12,7 +12,7 @@ const makeSong = (token) =>
   request(app)
     .post("/song/create")
     .set(authHeader(token))
-    .send({ name: "S", thumbnail: "t", track: "u" });
+    .send({ name: "S", artist: "A", thumbnail: "t", track: "u" });
 
 describe("Playlists", () => {
   test("creates a playlist and adds a song", async () => {
@@ -57,7 +57,8 @@ describe("Playlists", () => {
     expect(res.status).toBe(200);
     expect(res.body.emotion).toBe("happy");
     expect(res.body.songs.length).toBeGreaterThan(0);
-    expect(res.body.songs[0].artist).toBeDefined();
+    // Songs carry the performing-artist string.
+    expect(typeof res.body.songs[0].artist).toBe("string");
   });
 
   test("404 when no playlist matches the emotion", async () => {
@@ -66,5 +67,16 @@ describe("Playlists", () => {
       .get("/playlist/get/emotion/happy")
       .set(authHeader(token));
     expect(res.status).toBe(404);
+  });
+
+  test("lists the featured catalog playlists", async () => {
+    await seedDatabase();
+    const { token } = await createUser();
+    const res = await request(app)
+      .get("/playlist/get/featured")
+      .set(authHeader(token));
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBeGreaterThan(0);
+    expect(res.body.data.every((p) => p.isFeatured)).toBe(true);
   });
 });
