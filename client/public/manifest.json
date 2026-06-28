@@ -1,0 +1,15 @@
+{
+  "short_name": "Moodwave",
+  "name": "Moodwave — music that matches your mood",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0d0d12",
+  "background_color": "#0d0d12"
+}

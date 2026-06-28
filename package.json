@@ -1,0 +1,18 @@
+{
+  "name": "moodwave",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Moodwave — mood-based music streaming app (React + Express + MongoDB)",
+  "scripts": {
+    "dev": "concurrently -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client start",
+    "start:server": "npm --prefix server start",
+    "seed": "npm --prefix server run seed",
+    "test": "npm --prefix server test",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

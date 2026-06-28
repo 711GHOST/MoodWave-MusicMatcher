@@ -1,0 +1,107 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Icon } from "@iconify/react";
+import TextInput from "../components/shared/TextInput";
+import CloudinaryUpload from "../components/shared/CloudinaryUpload";
+import Spinner from "../components/shared/Spinner";
+import { createSong } from "../api/songs";
+import { useToast } from "../context/ToastContext";
+
+const UploadSong = () => {
+  const [name, setName] = useState("");
+  const [thumbnail, setThumbnail] = useState("");
+  const [trackUrl, setTrackUrl] = useState("");
+  const [trackName, setTrackName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+  const navigate = useNavigate();
+
+  const submit = async () => {
+    if (!name.trim() || !thumbnail.trim() || !trackUrl.trim()) {
+      toast.error("Add a name, a cover image URL, and an audio track.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await createSong({
+        name: name.trim(),
+        thumbnail: thumbnail.trim(),
+        track: trackUrl.trim(),
+      });
+      toast.success("Song uploaded!");
+      navigate("/my-music");
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="pt-6 max-w-2xl">
+      <h1 className="text-3xl font-extrabold text-white mb-6">
+        Upload your music
+      </h1>
+
+      <div className="space-y-5 bg-ink-850 border border-ink-800 rounded-2xl p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <TextInput
+            label="Song name"
+            placeholder="Track title"
+            value={name}
+            onChange={setName}
+          />
+          <TextInput
+            label="Cover image URL"
+            placeholder="https://..."
+            value={thumbnail}
+            onChange={setThumbnail}
+          />
+        </div>
+
+        <div>
+          <div className="text-sm font-semibold text-white mb-2">
+            Audio track
+          </div>
+          {trackUrl ? (
+            <div className="flex items-center gap-2 text-brand text-sm">
+              <Icon icon="mdi:check-circle" width={18} />
+              {trackName || "Track ready"}
+              <button
+                onClick={() => {
+                  setTrackUrl("");
+                  setTrackName("");
+                }}
+                className="text-ink-500 hover:text-white ml-2"
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <CloudinaryUpload setUrl={setTrackUrl} setName={setTrackName} />
+              <div className="text-xs text-ink-500">
+                …or paste a direct audio URL:
+              </div>
+              <TextInput
+                placeholder="https://example.com/track.mp3"
+                value={trackUrl}
+                onChange={setTrackUrl}
+              />
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={submit}
+          disabled={saving}
+          className="flex items-center justify-center gap-2 bg-brand hover:bg-brand-light text-black font-bold px-8 py-3 rounded-full transition disabled:opacity-60"
+        >
+          {saving ? <Spinner size={20} className="text-black" /> : "Submit song"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default UploadSong;
