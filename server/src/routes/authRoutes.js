@@ -30,6 +30,8 @@ router.post(
   authController.login
 );
 
+router.post("/logout", authController.logout);
+
 router.get("/me", requireAuth, authController.me);
 
 router.patch(

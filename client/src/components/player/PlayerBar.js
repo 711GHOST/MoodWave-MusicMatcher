@@ -27,7 +27,8 @@ const PlayerBar = () => {
     repeat,
     cycleRepeat,
   } = usePlayer();
-  const { openAddToPlaylist, toggleNowPlaying, nowPlayingOpen } = useUI();
+  const { openAddToPlaylist, toggleNowPlaying, nowPlayingOpen, openMobileNowPlaying } =
+    useUI();
   const { user, refreshUser } = useAuth();
   const toast = useToast();
 
@@ -48,24 +49,30 @@ const PlayerBar = () => {
 
   return (
     <footer className="h-20 shrink-0 bg-ink-900 border-t border-ink-800 px-3 md:px-4 flex items-center gap-3 md:gap-4">
-      {/* Now playing */}
+      {/* Now playing — tapping the track opens the full-screen sheet on mobile */}
       <div className="flex items-center gap-3 w-1/3 md:w-1/4 min-w-0">
-        <img
-          src={currentSong.thumbnail}
-          onError={onImgError}
-          alt=""
-          className="h-12 w-12 md:h-14 md:w-14 rounded-md object-cover"
-        />
-        <div className="min-w-0 hidden xs:block">
-          <div className="text-sm text-white truncate">{currentSong.name}</div>
-          <div className="text-xs text-ink-500 truncate">
-            {artistName(currentSong.artist)}
+        <button
+          onClick={openMobileNowPlaying}
+          aria-label="Open now playing"
+          className="flex items-center gap-3 min-w-0 text-left lg:pointer-events-none"
+        >
+          <img
+            src={currentSong.thumbnail}
+            onError={onImgError}
+            alt=""
+            className="h-12 w-12 md:h-14 md:w-14 rounded-md object-cover shrink-0"
+          />
+          <div className="min-w-0 hidden xs:block">
+            <div className="text-sm text-white truncate">{currentSong.name}</div>
+            <div className="text-xs text-ink-500 truncate">
+              {artistName(currentSong.artist)}
+            </div>
           </div>
-        </div>
+        </button>
         <button
           onClick={onLike}
           aria-label={liked ? "Unlike" : "Like"}
-          className={`ml-1 ${liked ? "text-brand" : "text-ink-500 hover:text-white"}`}
+          className={`ml-1 shrink-0 ${liked ? "text-brand" : "text-ink-500 hover:text-white"}`}
         >
           <Icon icon={liked ? "mdi:heart" : "mdi:heart-outline"} width={20} />
         </button>

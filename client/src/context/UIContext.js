@@ -10,8 +10,9 @@ export function UIProvider({ children }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [addState, setAddState] = useState({ open: false, songId: null });
-  // Right-hand "Now playing" panel (queue + current track).
+  // Right-hand "Now playing" panel (desktop) and full-screen sheet (mobile).
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
+  const [mobileNowPlayingOpen, setMobileNowPlayingOpen] = useState(false);
 
   const value = {
     openCreatePlaylist: () => setCreateOpen(true),
@@ -21,6 +22,9 @@ export function UIProvider({ children }) {
     openNowPlaying: useCallback(() => setNowPlayingOpen(true), []),
     closeNowPlaying: useCallback(() => setNowPlayingOpen(false), []),
     toggleNowPlaying: useCallback(() => setNowPlayingOpen((o) => !o), []),
+    mobileNowPlayingOpen,
+    openMobileNowPlaying: useCallback(() => setMobileNowPlayingOpen(true), []),
+    closeMobileNowPlaying: useCallback(() => setMobileNowPlayingOpen(false), []),
   };
 
   return (

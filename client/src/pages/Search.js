@@ -1,33 +1,45 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Icon } from "@iconify/react";
 import { searchAll } from "../api/search";
+import { searchSongs } from "../api/songs";
 import { usePlayer } from "../context/PlayerContext";
+import useInfiniteScroll from "../hooks/useInfiniteScroll";
 import SongRow from "../components/cards/SongRow";
 import PlaylistCard from "../components/cards/PlaylistCard";
 import ArtistCard from "../components/cards/ArtistCard";
 import EmptyState from "../components/shared/EmptyState";
 import Spinner from "../components/shared/Spinner";
 
-const EMPTY = { songs: [], playlists: [], artists: [] };
+const SONG_PAGE_SIZE = 10;
 
 const Search = () => {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState(EMPTY);
+  const [songs, setSongs] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState("all");
+  // Pagination state for the songs list.
+  const [songsPage, setSongsPage] = useState(1);
+  const [songsHasMore, setSongsHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  // The query the current results belong to (so "load more" pages the same term).
+  const [activeQuery, setActiveQuery] = useState("");
   const { playQueue } = usePlayer();
 
   const run = async () => {
-    if (!query.trim()) return;
+    const q = query.trim();
+    if (!q) return;
     setLoading(true);
     try {
-      const r = await searchAll(query.trim());
-      setResults({
-        songs: r.songs || [],
-        playlists: r.playlists || [],
-        artists: r.artists || [],
-      });
+      const r = await searchAll(q);
+      setSongs(r.songs || []);
+      setPlaylists(r.playlists || []);
+      setArtists(r.artists || []);
+      setSongsHasMore(!!r.songsHasMore);
+      setSongsPage(1);
+      setActiveQuery(q);
       setSearched(true);
       setTab("all");
     } finally {
@@ -35,11 +47,28 @@ const Search = () => {
     }
   };
 
-  const { songs, playlists, artists } = results;
-  const total = songs.length + playlists.length + artists.length;
+  const loadMoreSongs = useCallback(async () => {
+    if (loadingMore || !songsHasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = songsPage + 1;
+      const r = await searchSongs(activeQuery, nextPage, SONG_PAGE_SIZE);
+      setSongs((prev) => [...prev, ...(r.data || [])]);
+      setSongsPage(nextPage);
+      setSongsHasMore(!!r.hasMore);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeQuery, songsPage, songsHasMore, loadingMore]);
 
+  const sentinelRef = useInfiniteScroll(loadMoreSongs, {
+    hasMore: songsHasMore,
+    loading: loadingMore,
+  });
+
+  const total = songs.length + playlists.length + artists.length;
   const TABS = [
-    { id: "all", label: "All", count: total },
+    { id: "all", label: "All" },
     { id: "songs", label: "Songs", count: songs.length },
     { id: "playlists", label: "Playlists", count: playlists.length },
     { id: "artists", label: "Artists", count: artists.length },
@@ -48,30 +77,6 @@ const Search = () => {
   const showSongs = tab === "all" || tab === "songs";
   const showPlaylists = tab === "all" || tab === "playlists";
   const showArtists = tab === "all" || tab === "artists";
-
-  const SongList = () => (
-    <div className="space-y-1">
-      {songs.map((s, i) => (
-        <SongRow key={s._id} song={s} index={i} onPlay={() => playQueue(songs, i)} />
-      ))}
-    </div>
-  );
-
-  const PlaylistGrid = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {playlists.map((p) => (
-        <PlaylistCard key={p._id} playlist={p} />
-      ))}
-    </div>
-  );
-
-  const ArtistGrid = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-      {artists.map((a) => (
-        <ArtistCard key={a.name} artist={a} />
-      ))}
-    </div>
-  );
 
   const Section = ({ title, children }) => (
     <section className="mb-8">
@@ -99,7 +104,7 @@ const Search = () => {
 
       {searched && total > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
-          {TABS.filter((tb) => tb.count > 0 || tb.id === "all").map((tb) => (
+          {TABS.filter((tb) => tb.id === "all" || tb.count > 0).map((tb) => (
             <button
               key={tb.id}
               onClick={() => setTab(tb.id)}
@@ -135,17 +140,55 @@ const Search = () => {
         <div>
           {showArtists && artists.length > 0 && (
             <Section title="Artists">
-              <ArtistGrid />
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {artists.map((a) => (
+                  <ArtistCard key={a.name} artist={a} />
+                ))}
+              </div>
             </Section>
           )}
+
           {showSongs && songs.length > 0 && (
             <Section title="Songs">
-              <SongList />
+              <div className="space-y-1">
+                {songs.map((s, i) => (
+                  <SongRow
+                    key={s._id}
+                    song={s}
+                    index={i}
+                    onPlay={() => playQueue(songs, i)}
+                  />
+                ))}
+              </div>
+
+              {/* Infinite-scroll sentinel + explicit fallback control. */}
+              {songsHasMore && (
+                <div
+                  ref={sentinelRef}
+                  className="flex justify-center py-6"
+                >
+                  {loadingMore ? (
+                    <Spinner size={24} />
+                  ) : (
+                    <button
+                      onClick={loadMoreSongs}
+                      className="text-sm font-semibold text-ink-300 hover:text-white border border-ink-700 hover:border-ink-500 rounded-full px-5 py-2 transition"
+                    >
+                      Load more songs
+                    </button>
+                  )}
+                </div>
+              )}
             </Section>
           )}
+
           {showPlaylists && playlists.length > 0 && (
             <Section title="Playlists">
-              <PlaylistGrid />
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {playlists.map((p) => (
+                  <PlaylistCard key={p._id} playlist={p} />
+                ))}
+              </div>
             </Section>
           )}
         </div>

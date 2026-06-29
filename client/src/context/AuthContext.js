@@ -1,61 +1,45 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { useCookies } from "react-cookie";
-import { setAuthToken } from "../api/client";
 import * as authApi from "../api/auth";
 import { clearRecentlyPlayed } from "../utils/recentlyPlayed";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [cookies, setCookie, removeCookie] = useCookies(["token"]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   // True only right after a fresh sign-up — drives the welcome modal.
   const [justRegistered, setJustRegistered] = useState(false);
 
-  // Restore a session from the cookie on first load.
+  // Restore a session from the httpOnly cookie on first load. If the cookie is
+  // missing/expired, /auth/me returns 401 and we stay logged out.
   useEffect(() => {
-    const token = cookies.token;
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    setAuthToken(token);
     authApi
       .getMe()
       .then((data) => setUser(data.user))
-      .catch(() => {
-        removeCookie("token", { path: "/" });
-        setAuthToken(null);
-      })
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const persistSession = (token, sessionUser) => {
-    const expires = new Date();
-    expires.setDate(expires.getDate() + 7);
-    setCookie("token", token, { path: "/", expires, sameSite: "lax" });
-    setAuthToken(token);
-    setUser(sessionUser);
-  };
-
   const login = async (identifier, password) => {
+    // The server sets the auth cookie; we just hold the user in memory.
     const data = await authApi.login(identifier, password);
-    persistSession(data.token, data.user);
+    setUser(data.user);
     return data.user;
   };
 
   const signup = async (payload) => {
     const data = await authApi.register(payload);
-    persistSession(data.token, data.user);
+    setUser(data.user);
     if (data.isNewUser) setJustRegistered(true);
     return data.user;
   };
 
-  const logout = () => {
-    removeCookie("token", { path: "/" });
-    setAuthToken(null);
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch (_) {
+      /* clear the client session regardless of the network result */
+    }
     setUser(null);
     setJustRegistered(false);
     // Don't leak listening history to the next account on a shared browser.

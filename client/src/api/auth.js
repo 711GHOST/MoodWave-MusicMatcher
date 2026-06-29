@@ -8,6 +8,8 @@ export const register = (payload) =>
 
 export const getMe = () => api.get("/auth/me");
 
+export const logout = () => api.post("/auth/logout", {}, { auth: false });
+
 export const updateProfile = (payload) => api.patch("/auth/me", payload);
 
 export const sendOtp = (channel) => api.post("/auth/otp/send", { channel });

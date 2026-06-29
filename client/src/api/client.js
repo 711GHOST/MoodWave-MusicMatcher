@@ -1,24 +1,17 @@
 export const BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:3001";
 
-let authToken = null;
-
-// AuthContext keeps this in sync with the logged-in user's JWT.
-export const setAuthToken = (token) => {
-  authToken = token;
-};
-
-async function request(path, { method = "GET", body, auth = true } = {}) {
+// Auth is carried by an httpOnly cookie set by the server, so the token is
+// never readable from JavaScript. Every request opts into sending it.
+async function request(path, { method = "GET", body } = {}) {
   const headers = { "Content-Type": "application/json" };
-  if (auth && authToken) {
-    headers.Authorization = `Bearer ${authToken}`;
-  }
 
   let response;
   try {
     response = await fetch(BASE_URL + path, {
       method,
       headers,
+      credentials: "include",
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (networkErr) {

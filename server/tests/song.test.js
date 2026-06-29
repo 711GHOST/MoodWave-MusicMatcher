@@ -93,6 +93,29 @@ describe("Songs", () => {
     expect(byArtist.body.data).toHaveLength(1);
   });
 
+  test("paginates the all-songs list with page/limit", async () => {
+    const { token } = await createUser();
+    for (let i = 0; i < 5; i += 1) {
+      await request(app)
+        .post("/song/create")
+        .set(authHeader(token))
+        .send({ ...songPayload, name: `Track ${i}` });
+    }
+    const page1 = await request(app)
+      .get("/song/get/allsongs?page=1&limit=2")
+      .set(authHeader(token));
+    expect(page1.status).toBe(200);
+    expect(page1.body.data).toHaveLength(2);
+    expect(page1.body.total).toBe(5);
+    expect(page1.body.hasMore).toBe(true);
+
+    const page3 = await request(app)
+      .get("/song/get/allsongs?page=3&limit=2")
+      .set(authHeader(token));
+    expect(page3.body.data).toHaveLength(1);
+    expect(page3.body.hasMore).toBe(false);
+  });
+
   test("only the uploader can delete a song", async () => {
     const owner = await createUser();
     const stranger = await createUser();

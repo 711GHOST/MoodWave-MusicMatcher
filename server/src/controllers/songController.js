@@ -1,6 +1,7 @@
 const Song = require("../models/Song");
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
+const { parsePageParams, paginated } = require("../utils/paginate");
 
 // Escape user input before using it inside a RegExp (avoids regex injection/ReDoS).
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -18,8 +19,12 @@ exports.create = asyncHandler(async (req, res) => {
 });
 
 exports.getAll = asyncHandler(async (req, res) => {
-  const songs = await Song.find().sort("-createdAt").limit(200);
-  return res.status(200).json({ data: songs });
+  const { page, limit, skip } = parsePageParams(req, { defaultLimit: 50 });
+  const [songs, total] = await Promise.all([
+    Song.find().sort("-createdAt").skip(skip).limit(limit),
+    Song.countDocuments(),
+  ]);
+  return res.status(200).json(paginated(songs, total, page, limit));
 });
 
 exports.getMySongs = asyncHandler(async (req, res) => {
@@ -39,8 +44,13 @@ exports.getByArtist = asyncHandler(async (req, res) => {
 exports.search = asyncHandler(async (req, res) => {
   const { query } = req.params;
   const re = { $regex: escapeRegex(query), $options: "i" };
-  const songs = await Song.find({ $or: [{ name: re }, { artist: re }] });
-  return res.status(200).json({ data: songs });
+  const filter = { $or: [{ name: re }, { artist: re }] };
+  const { page, limit, skip } = parsePageParams(req, { defaultLimit: 20 });
+  const [songs, total] = await Promise.all([
+    Song.find(filter).sort("-createdAt").skip(skip).limit(limit),
+    Song.countDocuments(filter),
+  ]);
+  return res.status(200).json(paginated(songs, total, page, limit));
 });
 
 exports.toggleLike = asyncHandler(async (req, res) => {

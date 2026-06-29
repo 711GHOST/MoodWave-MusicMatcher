@@ -2,9 +2,17 @@ const { Strategy: JwtStrategy, ExtractJwt } = require("passport-jwt");
 const User = require("../models/User");
 const env = require("./env");
 
+// Prefer the httpOnly cookie (browser); fall back to a Bearer header
+// (mobile/native clients, tests).
+const cookieExtractor = (req) =>
+  req && req.cookies ? req.cookies.token || null : null;
+
 module.exports = (passport) => {
   const opts = {
-    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    jwtFromRequest: ExtractJwt.fromExtractors([
+      cookieExtractor,
+      ExtractJwt.fromAuthHeaderAsBearerToken(),
+    ]),
     secretOrKey: env.JWT_SECRET,
   };
 

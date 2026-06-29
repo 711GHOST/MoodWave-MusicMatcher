@@ -6,10 +6,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { Howl } from "howler";
 import { getPlaylistById } from "../api/playlists";
 import { useSettings } from "./SettingsContext";
 import { pushRecentlyPlayed } from "../utils/recentlyPlayed";
+import useAudioEngine from "../hooks/useAudioEngine";
+import useSleepTimer from "../hooks/useSleepTimer";
 
 const PlayerContext = createContext(null);
 
@@ -18,24 +19,21 @@ const PlayerContext = createContext(null);
 // normalization would use per-track ReplayGain data from the server.)
 const NORMALIZE_GAIN = 0.9;
 
+// Orchestrates the playback queue (shuffle/repeat/next/prev), volume policy and
+// recently-played history. The Howl instance lives in useAudioEngine and the
+// countdown in useSleepTimer; this provider wires them to the queue.
 export function PlayerProvider({ children }) {
   const { settings } = useSettings();
   const normalizeRef = useRef(settings.normalizeVolume);
+
   const [queue, setQueue] = useState([]);
   const [index, setIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState("off"); // "off" | "all" | "one"
-  // Sleep timer: minutes remaining (counts down) or "end" (stop after track).
-  const [sleepMinutes, setSleepMinutes] = useState(null);
-  const [sleepEndOfTrack, setSleepEndOfTrack] = useState(false);
 
-  // Refs mirror state so Howl event callbacks always read current values.
-  const soundRef = useRef(null);
+  // Refs mirror state so the audio "end" callback always reads current values.
   const queueRef = useRef([]);
   const indexRef = useRef(0);
   const repeatRef = useRef("off");
@@ -44,22 +42,45 @@ export function PlayerProvider({ children }) {
   const mutedRef = useRef(false);
   const preMuteVolumeRef = useRef(0.8);
   const handleEndRef = useRef(() => {});
-  const sleepEndOfTrackRef = useRef(false);
-  const sleepDeadlineRef = useRef(null); // epoch ms when playback should pause
 
-  // Effective gain applied to Howl, honoring the mute + normalize-volume settings.
+  // Effective gain applied to the engine, honoring mute + normalize-volume.
   const effectiveVolume = useCallback((v) => {
     if (mutedRef.current) return 0;
     return normalizeRef.current ? v * NORMALIZE_GAIN : v;
   }, []);
 
-  // Re-apply volume whenever the normalize setting flips.
+  // Audio engine (Howl) — stable method refs, current transport state.
+  const {
+    isPlaying,
+    progress,
+    duration,
+    load: engineLoad,
+    pause: enginePause,
+    resume: engineResume,
+    seek: engineSeek,
+    restart: engineRestart,
+    setGain: engineSetGain,
+    stop: engineStop,
+    markStopped: engineMarkStopped,
+    hasSound: engineHasSound,
+    playing: enginePlaying,
+    currentSeek: engineCurrentSeek,
+  } = useAudioEngine({
+    onEnd: () => handleEndRef.current(),
+    getGain: () => effectiveVolume(volumeRef.current),
+  });
+
+  // Sleep timer pauses playback when it elapses.
+  const { sleepMinutes, sleepEndOfTrack, setSleepTimer, consumeEndOfTrack } =
+    useSleepTimer(() => {
+      if (enginePlaying()) enginePause();
+    });
+
+  // Re-apply gain whenever the normalize setting flips.
   useEffect(() => {
     normalizeRef.current = settings.normalizeVolume;
-    if (soundRef.current) {
-      soundRef.current.volume(effectiveVolume(volumeRef.current));
-    }
-  }, [settings.normalizeVolume, effectiveVolume]);
+    engineSetGain(effectiveVolume(volumeRef.current));
+  }, [settings.normalizeVolume, effectiveVolume, engineSetGain]);
 
   useEffect(() => {
     queueRef.current = queue;
@@ -76,59 +97,13 @@ export function PlayerProvider({ children }) {
 
   const currentSong = queue[index] || null;
 
-  // Poll the playing sound for progress.
-  useEffect(() => {
-    const id = setInterval(() => {
-      const s = soundRef.current;
-      if (s && s.playing()) {
-        setProgress(s.seek() || 0);
-        const d = s.duration();
-        if (d) setDuration(d);
-      }
-    }, 250);
-    return () => clearInterval(id);
-  }, []);
-
-  // Unload audio on unmount.
-  useEffect(
-    () => () => {
-      if (soundRef.current) soundRef.current.unload();
+  const loadAndPlay = useCallback(
+    (song) => {
+      engineLoad(song);
+      if (song && song.track) pushRecentlyPlayed(song);
     },
-    []
+    [engineLoad]
   );
-
-  const loadAndPlay = useCallback((song) => {
-    if (soundRef.current) {
-      soundRef.current.unload();
-      soundRef.current = null;
-    }
-    if (!song || !song.track) {
-      setIsPlaying(false);
-      return;
-    }
-    const sound = new Howl({
-      src: [song.track],
-      html5: true,
-      volume: effectiveVolume(volumeRef.current),
-      onplay: () => {
-        setIsPlaying(true);
-        const d = sound.duration();
-        if (d) setDuration(d);
-      },
-      onpause: () => setIsPlaying(false),
-      onstop: () => setIsPlaying(false),
-      onend: () => handleEndRef.current(),
-      onload: () => {
-        const d = sound.duration();
-        if (d) setDuration(d);
-      },
-      onloaderror: () => setIsPlaying(false),
-    });
-    soundRef.current = sound;
-    setProgress(0);
-    pushRecentlyPlayed(song);
-    sound.play();
-  }, [effectiveVolume]);
 
   const playIndex = useCallback(
     (i) => {
@@ -173,35 +148,28 @@ export function PlayerProvider({ children }) {
   const prev = useCallback(() => {
     const q = queueRef.current;
     if (!q.length) return;
-    const s = soundRef.current;
-    if (s && (s.seek() || 0) > 3) {
-      s.seek(0);
-      setProgress(0);
+    // Restart the current track if we're more than 3s in.
+    if (engineCurrentSeek() > 3) {
+      engineSeek(0);
       return;
     }
     let i = indexRef.current - 1;
     if (i < 0) i = q.length - 1;
     playIndex(i);
-  }, [playIndex]);
+  }, [playIndex, engineCurrentSeek, engineSeek]);
 
-  // Recomputed every render and stashed in a ref so the Howl "end" callback
+  // Recomputed every render and stashed in a ref so the engine "end" callback
   // always sees the latest shuffle/repeat/queue state.
   const handleEnd = () => {
     const q = queueRef.current;
     const i = indexRef.current;
-    // Sleep timer set to "end of track" — stop instead of advancing.
-    if (sleepEndOfTrackRef.current) {
-      sleepEndOfTrackRef.current = false;
-      setSleepEndOfTrack(false);
-      setIsPlaying(false);
+    // Sleep timer "end of track" — stop instead of advancing.
+    if (consumeEndOfTrack()) {
+      engineMarkStopped();
       return;
     }
     if (repeatRef.current === "one") {
-      const s = soundRef.current;
-      if (s) {
-        s.seek(0);
-        s.play();
-      }
+      engineRestart();
       return;
     }
     if (shuffleRef.current && q.length > 1) {
@@ -210,7 +178,7 @@ export function PlayerProvider({ children }) {
     }
     if (i >= q.length - 1) {
       if (repeatRef.current === "all") playIndex(0);
-      else setIsPlaying(false);
+      else engineMarkStopped();
       return;
     }
     playIndex(i + 1);
@@ -218,21 +186,15 @@ export function PlayerProvider({ children }) {
   handleEndRef.current = handleEnd;
 
   const togglePlay = useCallback(() => {
-    const s = soundRef.current;
-    if (!s) {
+    if (!engineHasSound()) {
       if (queueRef.current.length) playIndex(indexRef.current);
       return;
     }
-    if (s.playing()) s.pause();
-    else s.play();
-  }, [playIndex]);
+    if (enginePlaying()) enginePause();
+    else engineResume();
+  }, [playIndex, engineHasSound, enginePlaying, enginePause, engineResume]);
 
-  const seekTo = useCallback((seconds) => {
-    const s = soundRef.current;
-    if (!s) return;
-    s.seek(seconds);
-    setProgress(seconds);
-  }, []);
+  const seekTo = useCallback((seconds) => engineSeek(seconds), [engineSeek]);
 
   const setVolume = useCallback(
     (v) => {
@@ -244,9 +206,9 @@ export function PlayerProvider({ children }) {
         mutedRef.current = false;
         setMuted(false);
       }
-      if (soundRef.current) soundRef.current.volume(effectiveVolume(vol));
+      engineSetGain(effectiveVolume(vol));
     },
-    [effectiveVolume]
+    [effectiveVolume, engineSetGain]
   );
 
   const toggleMute = useCallback(() => {
@@ -261,14 +223,10 @@ export function PlayerProvider({ children }) {
         volumeRef.current = restored;
         setVolumeState(restored);
       }
-      if (soundRef.current) {
-        soundRef.current.volume(
-          nextMuted ? 0 : effectiveVolume(volumeRef.current)
-        );
-      }
+      engineSetGain(nextMuted ? 0 : effectiveVolume(volumeRef.current));
       return nextMuted;
     });
-  }, [effectiveVolume]);
+  }, [effectiveVolume, engineSetGain]);
 
   const toggleShuffle = useCallback(() => setShuffle((s) => !s), []);
   const cycleRepeat = useCallback(
@@ -319,62 +277,13 @@ export function PlayerProvider({ children }) {
     setQueue(nq);
   }, []);
 
-  // --- Sleep timer -------------------------------------------------------
-  // value: a number of minutes, the string "end" (stop after the current
-  // track finishes), or null/0 to cancel.
-  const setSleepTimer = useCallback((value) => {
-    if (value === "end") {
-      sleepEndOfTrackRef.current = true;
-      setSleepEndOfTrack(true);
-      sleepDeadlineRef.current = null;
-      setSleepMinutes(null);
-      return;
-    }
-    sleepEndOfTrackRef.current = false;
-    setSleepEndOfTrack(false);
-    if (!value) {
-      sleepDeadlineRef.current = null;
-      setSleepMinutes(null);
-      return;
-    }
-    sleepDeadlineRef.current = Date.now() + value * 60 * 1000;
-    setSleepMinutes(value);
-  }, []);
-
-  // Tick the countdown timer and pause playback when it elapses.
-  useEffect(() => {
-    if (sleepMinutes == null) return undefined;
-    const id = setInterval(() => {
-      if (!sleepDeadlineRef.current) return;
-      const remainingMs = sleepDeadlineRef.current - Date.now();
-      if (remainingMs <= 0) {
-        if (soundRef.current && soundRef.current.playing()) {
-          soundRef.current.pause();
-        }
-        sleepDeadlineRef.current = null;
-        setSleepMinutes(null);
-      } else {
-        // Re-render so the UI shows minutes remaining.
-        setSleepMinutes(Math.ceil(remainingMs / 60000));
-      }
-    }, 1000);
-    return () => clearInterval(id);
-  }, [sleepMinutes]);
-
   const stop = useCallback(() => {
-    if (soundRef.current) {
-      soundRef.current.stop();
-      soundRef.current.unload();
-      soundRef.current = null;
-    }
-    setIsPlaying(false);
+    engineStop();
     setQueue([]);
     queueRef.current = [];
     setIndex(0);
     indexRef.current = 0;
-    setProgress(0);
-    setDuration(0);
-  }, []);
+  }, [engineStop]);
 
   const playPlaylistById = useCallback(
     async (id) => {

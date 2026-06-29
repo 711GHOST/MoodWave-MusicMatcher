@@ -5,6 +5,7 @@ import Topbar from "./Topbar";
 import MobileNav from "./MobileNav";
 import PlayerBar from "../player/PlayerBar";
 import NowPlayingPanel from "../player/NowPlayingPanel";
+import MobileNowPlaying from "../player/MobileNowPlaying";
 import WelcomeModal from "../../modals/WelcomeModal";
 import { usePlayer } from "../../context/PlayerContext";
 import { useAuth } from "../../context/AuthContext";
@@ -56,6 +57,8 @@ const AppLayout = () => {
         {currentSong && nowPlayingOpen && <NowPlayingPanel />}
       </div>
       {currentSong && <PlayerBar />}
+      {/* Full-screen now-playing sheet — mobile only */}
+      <MobileNowPlaying />
       {/* Bottom tab bar — mobile only */}
       <MobileNav />
       {/* First-time welcome */}

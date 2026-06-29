@@ -2,6 +2,25 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const { signToken } = require("../utils/token");
 const asyncHandler = require("../utils/asyncHandler");
+const env = require("../config/env");
+
+const TOKEN_COOKIE = "token";
+// httpOnly so the JWT is never exposed to JavaScript (XSS-resistant).
+const cookieOptions = () => ({
+  httpOnly: true,
+  secure: env.NODE_ENV === "production",
+  sameSite: "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, matches JWT_EXPIRES_IN
+  path: "/",
+});
+
+// Issue the JWT as an httpOnly cookie. The token is also returned in the body
+// for non-browser clients (and the existing test suite).
+const issueToken = (res, user) => {
+  const token = signToken(user);
+  res.cookie(TOKEN_COOKIE, token, cookieOptions());
+  return token;
+};
 
 exports.register = asyncHandler(async (req, res) => {
   const { firstName, lastName, email, userName, password } = req.body;
@@ -26,7 +45,7 @@ exports.register = asyncHandler(async (req, res) => {
     password: hashedPassword,
   });
 
-  const token = signToken(user);
+  const token = issueToken(res, user);
   // isNewUser drives the first-time welcome modal on the client.
   return res.status(201).json({ user: user.toJSON(), token, isNewUser: true });
 });
@@ -50,8 +69,13 @@ exports.login = asyncHandler(async (req, res) => {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
-  const token = signToken(user);
+  const token = issueToken(res, user);
   return res.status(200).json({ user: user.toJSON(), token });
+});
+
+exports.logout = asyncHandler(async (req, res) => {
+  res.clearCookie(TOKEN_COOKIE, { ...cookieOptions(), maxAge: undefined });
+  return res.status(200).json({ message: "Logged out" });
 });
 
 exports.me = asyncHandler(async (req, res) => {

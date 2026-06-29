@@ -151,4 +151,30 @@ describe("Auth", () => {
       .send({ channel: "phone" });
     expect(res.status).toBe(422);
   });
+
+  test("login sets an httpOnly token cookie", async () => {
+    await request(app).post("/auth/register").send(user);
+    const res = await request(app)
+      .post("/auth/login")
+      .send({ identifier: user.email, password: user.password });
+    const setCookie = (res.headers["set-cookie"] || []).join(";");
+    expect(setCookie).toMatch(/token=/);
+    expect(setCookie.toLowerCase()).toContain("httponly");
+  });
+
+  test("authenticates via the cookie and clears it on logout", async () => {
+    const agent = request.agent(app); // persists cookies across requests
+    await agent.post("/auth/register").send(user);
+
+    // No Authorization header — the cookie alone authorizes the request.
+    const me = await agent.get("/auth/me");
+    expect(me.status).toBe(200);
+    expect(me.body.user.email).toBe(user.email);
+
+    const out = await agent.post("/auth/logout");
+    expect(out.status).toBe(200);
+
+    const after = await agent.get("/auth/me");
+    expect(after.status).toBe(401);
+  });
 });

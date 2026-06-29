@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { CookiesProvider } from "react-cookie";
 
 import { ToastProvider } from "./context/ToastContext";
 import { LanguageProvider } from "./context/LanguageContext";
@@ -12,6 +11,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 import AppLayout from "./components/layout/AppLayout";
 import Spinner from "./components/shared/Spinner";
+import ErrorBoundary from "./components/shared/ErrorBoundary";
 
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -77,8 +77,8 @@ function AppRoutes() {
 
 function App() {
   return (
-    <CookiesProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <ErrorBoundary>
         <ToastProvider>
           <LanguageProvider>
             <AuthProvider>
@@ -92,8 +92,8 @@ function App() {
             </AuthProvider>
           </LanguageProvider>
         </ToastProvider>
-      </BrowserRouter>
-    </CookiesProvider>
+      </ErrorBoundary>
+    </BrowserRouter>
   );
 }
 

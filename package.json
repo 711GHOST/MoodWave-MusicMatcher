@@ -10,6 +10,8 @@
     "start:server": "npm --prefix server start",
     "seed": "npm --prefix server run seed",
     "test": "npm --prefix server test",
+    "test:client": "npm --prefix client run test:ci",
+    "test:all": "npm --prefix server test && npm --prefix client run test:ci",
     "install:all": "npm install && npm --prefix server install && npm --prefix client install"
   },
   "devDependencies": {
