@@ -1,9 +1,14 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { searchAll } from "../api/search";
 import { searchSongs } from "../api/songs";
 import { usePlayer } from "../context/PlayerContext";
 import useInfiniteScroll from "../hooks/useInfiniteScroll";
+import {
+  getRecentSearches,
+  pushRecentSearch,
+  clearRecentSearches,
+} from "../utils/recentSearches";
 import SongRow from "../components/cards/SongRow";
 import PlaylistCard from "../components/cards/PlaylistCard";
 import ArtistCard from "../components/cards/ArtistCard";
@@ -20,16 +25,16 @@ const Search = () => {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState("all");
-  // Pagination state for the songs list.
   const [songsPage, setSongsPage] = useState(1);
   const [songsHasMore, setSongsHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  // The query the current results belong to (so "load more" pages the same term).
   const [activeQuery, setActiveQuery] = useState("");
+  const [recent, setRecent] = useState(() => getRecentSearches());
   const { playQueue } = usePlayer();
 
-  const run = async () => {
-    const q = query.trim();
+  // `commit` saves the term to recent searches (explicit submit / chip click).
+  const run = useCallback(async (term, commit) => {
+    const q = (term || "").trim();
     if (!q) return;
     setLoading(true);
     try {
@@ -42,9 +47,33 @@ const Search = () => {
       setActiveQuery(q);
       setSearched(true);
       setTab("all");
+      if (commit) setRecent(pushRecentSearch(q));
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Live search: debounce typing (≥2 chars) so results update as you type.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) return undefined;
+    const id = setTimeout(() => run(q, false), 350);
+    return () => clearTimeout(id);
+  }, [query, run]);
+
+  const onChangeQuery = (v) => {
+    setQuery(v);
+    if (v.trim() === "") setSearched(false); // back to the recent-searches view
+  };
+
+  const submit = () => {
+    const q = query.trim();
+    if (q) run(q, true);
+  };
+
+  const chooseRecent = (term) => {
+    setQuery(term);
+    run(term, true);
   };
 
   const loadMoreSongs = useCallback(async () => {
@@ -95,8 +124,8 @@ const Search = () => {
         />
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && run()}
+          onChange={(e) => onChangeQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
           placeholder="Songs, playlists, or artists"
           className="w-full pl-12 pr-4 py-3 rounded-full bg-ink-800 border border-ink-700 text-white placeholder-ink-500 focus:outline-none focus:border-brand"
         />
@@ -125,11 +154,40 @@ const Search = () => {
           <Spinner size={32} />
         </div>
       ) : !searched ? (
-        <EmptyState
-          icon="mdi:magnify"
-          title="Search Moodwave"
-          subtitle="Find songs, playlists, and artists — then play them instantly."
-        />
+        recent.length > 0 ? (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-white">Recent searches</h2>
+              <button
+                onClick={() => {
+                  clearRecentSearches();
+                  setRecent([]);
+                }}
+                className="text-xs font-semibold text-ink-400 hover:text-white"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recent.map((term) => (
+                <button
+                  key={term}
+                  onClick={() => chooseRecent(term)}
+                  className="flex items-center gap-2 bg-ink-800 hover:bg-ink-700 text-ink-200 text-sm rounded-full pl-3 pr-4 py-2 transition"
+                >
+                  <Icon icon="mdi:history" width={16} className="text-ink-500" />
+                  {term}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon="mdi:magnify"
+            title="Search Moodwave"
+            subtitle="Find songs, playlists, and artists — then play them instantly."
+          />
+        )
       ) : total === 0 ? (
         <EmptyState
           icon="mdi:music-note-off"
@@ -161,12 +219,8 @@ const Search = () => {
                 ))}
               </div>
 
-              {/* Infinite-scroll sentinel + explicit fallback control. */}
               {songsHasMore && (
-                <div
-                  ref={sentinelRef}
-                  className="flex justify-center py-6"
-                >
+                <div ref={sentinelRef} className="flex justify-center py-6">
                   {loadingMore ? (
                     <Spinner size={24} />
                   ) : (

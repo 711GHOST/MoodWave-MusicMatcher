@@ -33,10 +33,92 @@ exports.getFeatured = asyncHandler(async (req, res) => {
 exports.getById = asyncHandler(async (req, res) => {
   const playlist = await Playlist.findById(req.params.playlistId)
     .populate(populateSongs)
-    .populate("owner");
+    .populate("owner")
+    .populate("collaborators");
   if (!playlist) {
     return res.status(404).json({ error: "Playlist not found" });
   }
+  return res.status(200).json(playlist);
+});
+
+exports.toggleLike = asyncHandler(async (req, res) => {
+  const { playlistId } = req.params;
+  const playlist = await Playlist.findById(playlistId);
+  if (!playlist) {
+    return res.status(404).json({ error: "Playlist not found" });
+  }
+  const user = await User.findById(req.user._id);
+  const idx = user.likedPlaylists.findIndex((id) => id.equals(playlistId));
+  let liked;
+  if (idx >= 0) {
+    user.likedPlaylists.splice(idx, 1);
+    liked = false;
+  } else {
+    user.likedPlaylists.push(playlistId);
+    liked = true;
+  }
+  await user.save();
+  return res.status(200).json({ liked, likedPlaylists: user.likedPlaylists });
+});
+
+exports.getLiked = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).populate({
+    path: "likedPlaylists",
+    populate: { path: "owner" },
+  });
+  return res.status(200).json({ data: user.likedPlaylists });
+});
+
+exports.addCollaborator = asyncHandler(async (req, res) => {
+  const { playlistId, identifier } = req.body;
+  const playlist = await Playlist.findById(playlistId);
+  if (!playlist) {
+    return res.status(404).json({ error: "Playlist not found" });
+  }
+  if (!playlist.owner.equals(req.user._id)) {
+    return res
+      .status(403)
+      .json({ error: "Only the owner can manage collaborators" });
+  }
+  const id = (identifier || "").trim();
+  const collaborator = await User.findOne({
+    $or: [{ email: id.toLowerCase() }, { userName: id }],
+  });
+  if (!collaborator) {
+    return res
+      .status(404)
+      .json({ error: "No user found with that username or email" });
+  }
+  if (collaborator._id.equals(playlist.owner)) {
+    return res.status(400).json({ error: "You already own this playlist" });
+  }
+  if (playlist.collaborators.some((c) => c.equals(collaborator._id))) {
+    return res.status(409).json({ error: "Already a collaborator" });
+  }
+  playlist.collaborators.push(collaborator._id);
+  await playlist.save();
+  await playlist.populate("owner");
+  await playlist.populate("collaborators");
+  return res.status(200).json(playlist);
+});
+
+exports.removeCollaborator = asyncHandler(async (req, res) => {
+  const { playlistId, userId } = req.body;
+  const playlist = await Playlist.findById(playlistId);
+  if (!playlist) {
+    return res.status(404).json({ error: "Playlist not found" });
+  }
+  if (!playlist.owner.equals(req.user._id)) {
+    return res
+      .status(403)
+      .json({ error: "Only the owner can manage collaborators" });
+  }
+  playlist.collaborators = playlist.collaborators.filter(
+    (c) => !c.equals(userId)
+  );
+  await playlist.save();
+  await playlist.populate("owner");
+  await playlist.populate("collaborators");
   return res.status(200).json(playlist);
 });
 

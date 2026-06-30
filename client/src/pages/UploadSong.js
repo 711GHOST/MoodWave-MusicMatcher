@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import TextInput from "../components/shared/TextInput";
 import CloudinaryUpload from "../components/shared/CloudinaryUpload";
+import CoverImageField from "../components/shared/CoverImageField";
 import Spinner from "../components/shared/Spinner";
 import { createSong } from "../api/songs";
 import { useToast } from "../context/ToastContext";
@@ -63,9 +64,8 @@ const UploadSong = () => {
           />
         </div>
 
-        <TextInput
-          label="Cover image URL"
-          placeholder="https://..."
+        <CoverImageField
+          label="Cover image"
           value={thumbnail}
           onChange={setThumbnail}
         />

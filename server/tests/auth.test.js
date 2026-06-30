@@ -177,4 +177,48 @@ describe("Auth", () => {
     const after = await agent.get("/auth/me");
     expect(after.status).toBe(401);
   });
+
+  test("resets a forgotten password via an emailed code and logs in", async () => {
+    await request(app).post("/auth/register").send(user);
+
+    const forgot = await request(app)
+      .post("/auth/forgot-password")
+      .send({ email: user.email });
+    expect(forgot.status).toBe(200);
+    expect(forgot.body.devCode).toMatch(/^\d{6}$/);
+
+    const wrong = await request(app).post("/auth/reset-password").send({
+      email: user.email,
+      code: "000000",
+      newPassword: "newpass123",
+    });
+    expect(wrong.status).toBe(400);
+
+    const reset = await request(app).post("/auth/reset-password").send({
+      email: user.email,
+      code: forgot.body.devCode,
+      newPassword: "newpass123",
+    });
+    expect(reset.status).toBe(200);
+    expect(reset.body.user.email).toBe(user.email);
+
+    // Old password no longer works; the new one does.
+    const oldLogin = await request(app)
+      .post("/auth/login")
+      .send({ identifier: user.email, password: user.password });
+    expect(oldLogin.status).toBe(401);
+
+    const newLogin = await request(app)
+      .post("/auth/login")
+      .send({ identifier: user.email, password: "newpass123" });
+    expect(newLogin.status).toBe(200);
+  });
+
+  test("forgot-password doesn't reveal whether an email exists", async () => {
+    const res = await request(app)
+      .post("/auth/forgot-password")
+      .send({ email: "nobody@example.com" });
+    expect(res.status).toBe(200);
+    expect(res.body.devCode).toBeUndefined();
+  });
 });

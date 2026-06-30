@@ -52,6 +52,15 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const forgotPassword = (email) => authApi.forgotPassword(email);
+
+  // The server sets a fresh auth cookie on success, so we log straight in.
+  const resetPassword = async (email, code, newPassword) => {
+    const data = await authApi.resetPassword(email, code, newPassword);
+    if (data.user) setUser(data.user);
+    return data;
+  };
+
   const updateProfile = async (payload) => {
     const data = await authApi.updateProfile(payload);
     setUser(data.user);
@@ -88,6 +97,8 @@ export function AuthProvider({ children }) {
         updateProfile,
         sendOtp,
         verifyOtp,
+        forgotPassword,
+        resetPassword,
         goPremium,
       }}
     >

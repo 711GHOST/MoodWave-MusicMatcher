@@ -12,3 +12,10 @@ export const addSongToPlaylist = (playlistId, songId) =>
 export const removeSongFromPlaylist = (playlistId, songId) =>
   api.post("/playlist/remove/song", { playlistId, songId });
 export const deletePlaylist = (id) => api.del(`/playlist/${id}`);
+
+export const getLikedPlaylists = () => api.get("/playlist/get/liked");
+export const toggleLikePlaylist = (id) => api.post(`/playlist/like/${id}`);
+export const addCollaborator = (playlistId, identifier) =>
+  api.post("/playlist/collaborators/add", { playlistId, identifier });
+export const removeCollaborator = (playlistId, userId) =>
+  api.post("/playlist/collaborators/remove", { playlistId, userId });

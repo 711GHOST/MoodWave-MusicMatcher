@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
-import { getMyPlaylists } from "../api/playlists";
+import { getMyPlaylists, getLikedPlaylists } from "../api/playlists";
 import { useUI } from "../context/UIContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useSettings } from "../context/SettingsContext";
@@ -10,6 +10,7 @@ import EmptyState from "../components/shared/EmptyState";
 
 const Library = () => {
   const [playlists, setPlaylists] = useState([]);
+  const [liked, setLiked] = useState([]);
   const [loading, setLoading] = useState(true);
   const { openCreatePlaylist } = useUI();
   const { t } = useLanguage();
@@ -21,8 +22,11 @@ const Library = () => {
     : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4";
 
   useEffect(() => {
-    getMyPlaylists()
-      .then((r) => setPlaylists(r.data || []))
+    Promise.all([getMyPlaylists(), getLikedPlaylists()])
+      .then(([mine, likedRes]) => {
+        setPlaylists(mine.data || []);
+        setLiked(likedRes.data || []);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -45,17 +49,37 @@ const Library = () => {
         <div className="flex justify-center py-16">
           <Spinner size={36} />
         </div>
-      ) : playlists.length === 0 ? (
+      ) : playlists.length === 0 && liked.length === 0 ? (
         <EmptyState
           icon="mdi:playlist-music"
           title="No playlists yet"
-          subtitle="Create your first playlist to see it here."
+          subtitle="Create your first playlist or like one to see it here."
         />
       ) : (
-        <div className={gridClass}>
-          {playlists.map((p) => (
-            <PlaylistCard key={p._id} playlist={p} />
-          ))}
+        <div className="space-y-10">
+          {playlists.length > 0 && (
+            <section>
+              <h2 className="text-xl font-bold text-white mb-4">Your playlists</h2>
+              <div className={gridClass}>
+                {playlists.map((p) => (
+                  <PlaylistCard key={p._id} playlist={p} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {liked.length > 0 && (
+            <section>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Playlists you like
+              </h2>
+              <div className={gridClass}>
+                {liked.map((p) => (
+                  <PlaylistCard key={p._id} playlist={p} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </div>

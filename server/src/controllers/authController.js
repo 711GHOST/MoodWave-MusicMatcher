@@ -196,6 +196,61 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   });
 });
 
+// --- Forgot / reset password (public, OTP-powered) ------------------------
+exports.forgotPassword = asyncHandler(async (req, res) => {
+  const email = (req.body.email || "").toLowerCase().trim();
+  const user = await User.findOne({ email });
+  // Always respond the same way so we don't reveal which emails are registered.
+  const generic = {
+    message: "If an account exists for that email, a reset code has been sent.",
+  };
+  if (!user) return res.status(200).json(generic);
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  user.otp = {
+    codeHash: await bcrypt.hash(code, 10),
+    channel: "reset",
+    target: email,
+    expiresAt: new Date(Date.now() + OTP_TTL_MS),
+  };
+  await user.save();
+
+  // Demo only — a real deployment emails the code instead of returning it.
+  return res.status(200).json({ ...generic, devCode: code });
+});
+
+exports.resetPassword = asyncHandler(async (req, res) => {
+  const email = (req.body.email || "").toLowerCase().trim();
+  const code = String(req.body.code || "").trim();
+  const { newPassword } = req.body;
+
+  const user = await User.findOne({ email }).select("+otp");
+  const otp = user && user.otp;
+  if (!user || !otp || otp.channel !== "reset") {
+    return res.status(400).json({ error: "Request a new reset code." });
+  }
+  if (otp.expiresAt && otp.expiresAt.getTime() < Date.now()) {
+    user.otp = undefined;
+    await user.save();
+    return res
+      .status(400)
+      .json({ error: "That code has expired. Send a new one." });
+  }
+  if (otp.target !== email || !(await bcrypt.compare(code, otp.codeHash))) {
+    return res.status(400).json({ error: "Incorrect code. Try again." });
+  }
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.otp = undefined;
+  await user.save();
+
+  // Sign the user straight in with a fresh cookie.
+  const token = issueToken(res, user);
+  return res
+    .status(200)
+    .json({ message: "Password updated.", user: user.toJSON(), token });
+});
+
 exports.goPremium = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   user.isPremium = true;

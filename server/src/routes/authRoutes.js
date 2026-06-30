@@ -32,6 +32,29 @@ router.post(
 
 router.post("/logout", authController.logout);
 
+router.post(
+  "/forgot-password",
+  [body("email").isEmail().withMessage("A valid email is required")],
+  validate,
+  authController.forgotPassword
+);
+
+router.post(
+  "/reset-password",
+  [
+    body("email").isEmail().withMessage("A valid email is required"),
+    body("code")
+      .trim()
+      .isLength({ min: 6, max: 6 })
+      .withMessage("Enter the 6-digit code"),
+    body("newPassword")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters"),
+  ],
+  validate,
+  authController.resetPassword
+);
+
 router.get("/me", requireAuth, authController.me);
 
 router.patch(

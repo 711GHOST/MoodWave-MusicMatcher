@@ -4,19 +4,31 @@ import {
   cloudinary_cloud_name,
 } from "../../config_cloud";
 
-const CloudinaryUpload = ({ setUrl, setName }) => {
+// Reusable Cloudinary upload button. Defaults to the audio-track preset; pass
+// `uploadPreset` + `options` (e.g. resourceType/clientAllowedFormats) to upload
+// images or other media instead.
+const CloudinaryUpload = ({
+  setUrl,
+  setName,
+  label = "Select file",
+  uploadPreset,
+  options = {},
+  className,
+}) => {
   const uploadWidget = () => {
     const widget = openUploadWidget(
       {
         cloudName: cloudinary_cloud_name,
-        uploadPreset: cloudinary_upload_preset,
+        uploadPreset: uploadPreset || cloudinary_upload_preset,
         sources: ["local"],
+        ...options,
       },
       (error, result) => {
         if (!error && result && result.event === "success") {
           setUrl(result.info.secure_url);
-          setName(result.info.original_filename);
+          if (setName) setName(result.info.original_filename);
         } else if (error) {
+          // eslint-disable-next-line no-console
           console.error(error);
         }
       }
@@ -27,10 +39,13 @@ const CloudinaryUpload = ({ setUrl, setName }) => {
   return (
     <button
       type="button"
-      className="bg-ink-700 hover:bg-ink-600 text-white rounded-full px-5 py-3 font-semibold transition"
+      className={
+        className ||
+        "bg-ink-700 hover:bg-ink-600 text-white rounded-full px-5 py-3 font-semibold transition"
+      }
       onClick={uploadWidget}
     >
-      Select track file
+      {label}
     </button>
   );
 };

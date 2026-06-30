@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/shared/Modal";
 import TextInput from "../components/shared/TextInput";
+import CoverImageField from "../components/shared/CoverImageField";
 import Spinner from "../components/shared/Spinner";
 import { createPlaylist } from "../api/playlists";
 import { useToast } from "../context/ToastContext";
@@ -45,9 +46,8 @@ const CreatePlaylistModal = ({ onClose }) => {
           value={name}
           onChange={setName}
         />
-        <TextInput
-          label="Cover image URL (optional)"
-          placeholder="https://..."
+        <CoverImageField
+          label="Cover image (optional)"
           value={thumbnail}
           onChange={setThumbnail}
         />

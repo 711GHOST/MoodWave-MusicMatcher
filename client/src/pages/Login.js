@@ -61,6 +61,14 @@ const Login = () => {
             name="password"
             autoComplete="current-password"
           />
+          <div className="text-right -mt-1">
+            <Link
+              to="/forgot-password"
+              className="text-xs font-semibold text-ink-400 hover:text-white"
+            >
+              Forgot password?
+            </Link>
+          </div>
         </div>
 
         <button

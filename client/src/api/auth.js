@@ -10,6 +10,16 @@ export const getMe = () => api.get("/auth/me");
 
 export const logout = () => api.post("/auth/logout", {}, { auth: false });
 
+export const forgotPassword = (email) =>
+  api.post("/auth/forgot-password", { email }, { auth: false });
+
+export const resetPassword = (email, code, newPassword) =>
+  api.post(
+    "/auth/reset-password",
+    { email, code, newPassword },
+    { auth: false }
+  );
+
 export const updateProfile = (payload) => api.patch("/auth/me", payload);
 
 export const sendOtp = (channel) => api.post("/auth/otp/send", { channel });

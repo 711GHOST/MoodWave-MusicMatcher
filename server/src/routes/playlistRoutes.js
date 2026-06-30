@@ -20,9 +20,14 @@ router.post(
 
 router.get("/get/featured", playlistController.getFeatured);
 router.get("/get/me", playlistController.getMine);
+router.get("/get/liked", playlistController.getLiked);
 router.get("/get/playlist/:playlistId", playlistController.getById);
 router.get("/get/artist/:artistId", playlistController.getByArtist);
 router.get("/get/emotion/:emotion", playlistController.getByEmotion);
+
+router.post("/like/:playlistId", playlistController.toggleLike);
+router.post("/collaborators/add", playlistController.addCollaborator);
+router.post("/collaborators/remove", playlistController.removeCollaborator);
 
 // Kept for backward compatibility with the original POST-by-emotion contract.
 router.post("/get/playlist-by-emotion", playlistController.getByEmotion);
