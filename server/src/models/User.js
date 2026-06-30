@@ -18,6 +18,17 @@ const userSchema = new mongoose.Schema(
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
     isPremium: { type: Boolean, default: false },
+    // Optional saved card — MASKED metadata only. We never store the full PAN
+    // or CVV (that would require PCI-DSS compliance).
+    savedCard: {
+      type: {
+        brand: String,
+        last4: String,
+        expiry: String,
+        name: String,
+      },
+      default: undefined,
+    },
     likedSongs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
     likedPlaylists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Playlist" }],
     // One-time passcode for email/phone verification. Hashed; never returned.

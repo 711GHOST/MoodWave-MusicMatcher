@@ -27,6 +27,7 @@ import PlaylistView from "./pages/PlaylistView";
 import Mood from "./pages/Mood";
 import Profile from "./pages/Profile";
 import Premium from "./pages/Premium";
+import Checkout from "./pages/Checkout";
 import Settings from "./pages/Settings";
 import Artist from "./pages/Artist";
 
@@ -63,6 +64,7 @@ function AppRoutes() {
           <Route path="/mood" element={<Mood />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/premium" element={<Premium />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/playlist/:playlistId" element={<PlaylistView />} />
           <Route path="/artist/:name" element={<Artist />} />

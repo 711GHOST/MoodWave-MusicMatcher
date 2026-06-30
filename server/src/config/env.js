@@ -9,6 +9,9 @@ const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
   CLIENT_ORIGIN: process.env.CLIENT_ORIGIN || "http://localhost:3000",
   SEED_ON_START: process.env.SEED_ON_START === "true",
+  // Razorpay (test). Key ID is public; secret must never reach the client.
+  RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || "",
+  RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || "",
 };
 
 module.exports = env;

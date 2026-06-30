@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import Spinner from "../components/shared/Spinner";
+import { getPaymentConfig, removeSavedCard } from "../api/payment";
+import { detectCurrency } from "../utils/region";
+import { BRAND_INFO } from "../utils/cardBrand";
 
 const PERKS = [
   "Ad-free listening",
@@ -23,23 +26,36 @@ const Li = ({ children, muted }) => (
 );
 
 const Premium = () => {
-  const { user, goPremium } = useAuth();
+  const { user, refreshUser } = useAuth();
   const toast = useToast();
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const [price, setPrice] = useState("");
+  const [removing, setRemoving] = useState(false);
 
-  const upgrade = async () => {
-    setLoading(true);
+  useEffect(() => {
+    getPaymentConfig()
+      .then((c) => {
+        const cur = detectCurrency();
+        setPrice(c.plans?.[cur]?.display || c.plans?.USD?.display || "$4.99");
+      })
+      .catch(() => setPrice("$4.99"));
+  }, []);
+
+  const dropCard = async () => {
+    setRemoving(true);
     try {
-      await goPremium();
-      toast.success("Welcome to Premium! 🎉");
+      await removeSavedCard();
+      await refreshUser();
+      toast.success("Saved card removed.");
     } catch (e) {
       toast.error(e.message);
     } finally {
-      setLoading(false);
+      setRemoving(false);
     }
   };
 
   if (user?.isPremium) {
+    const card = user.savedCard;
     return (
       <div className="pt-10 max-w-2xl mx-auto text-center">
         <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-brand to-accent flex items-center justify-center shadow-xl mb-5">
@@ -61,6 +77,34 @@ const Premium = () => {
             </div>
           ))}
         </div>
+
+        {card && card.last4 && (
+          <div className="mt-6 flex items-center justify-between bg-ink-850 border border-ink-800 rounded-xl p-4 text-left">
+            <div className="flex items-center gap-3">
+              <span
+                className="px-2 py-0.5 rounded text-[11px] font-extrabold text-white"
+                style={{ backgroundColor: BRAND_INFO[card.brand]?.color || "#555" }}
+              >
+                {BRAND_INFO[card.brand]?.label || "CARD"}
+              </span>
+              <div>
+                <div className="text-white text-sm font-semibold">
+                  •••• •••• •••• {card.last4}
+                </div>
+                <div className="text-xs text-ink-500">
+                  {card.name} · expires {card.expiry}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={dropCard}
+              disabled={removing}
+              className="text-sm font-semibold text-ink-400 hover:text-red-400 transition disabled:opacity-50"
+            >
+              Remove
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -82,7 +126,7 @@ const Premium = () => {
         <div className="bg-ink-850 border border-ink-800 rounded-2xl p-7">
           <div className="text-sm text-ink-400 font-semibold">Free</div>
           <div className="text-3xl font-extrabold text-white mt-1">
-            $0<span className="text-base font-medium text-ink-500">/mo</span>
+            0<span className="text-base font-medium text-ink-500">/mo</span>
           </div>
           <ul className="mt-5 space-y-2 text-sm text-ink-300">
             <Li>Stream the full catalog</Li>
@@ -102,7 +146,8 @@ const Premium = () => {
           </div>
           <div className="text-sm text-brand font-semibold">Premium</div>
           <div className="text-3xl font-extrabold text-white mt-1">
-            $4.99<span className="text-base font-medium text-ink-500">/mo</span>
+            {price || "…"}
+            <span className="text-base font-medium text-ink-500">/mo</span>
           </div>
           <ul className="mt-5 space-y-2 text-sm text-white">
             {PERKS.map((p) => (
@@ -110,20 +155,13 @@ const Premium = () => {
             ))}
           </ul>
           <button
-            onClick={upgrade}
-            disabled={loading}
-            className="mt-6 w-full bg-brand hover:bg-brand-light text-black font-bold py-3 rounded-full transition disabled:opacity-60 flex items-center justify-center gap-2"
+            onClick={() => navigate("/checkout")}
+            className="mt-6 w-full bg-brand hover:bg-brand-light text-black font-bold py-3 rounded-full transition flex items-center justify-center gap-2"
           >
-            {loading ? (
-              <Spinner size={20} className="text-black" />
-            ) : (
-              <>
-                <Icon icon="mdi:crown" width={20} /> Go Premium
-              </>
-            )}
+            <Icon icon="mdi:crown" width={20} /> Go Premium
           </button>
           <div className="text-center text-[11px] text-ink-500 mt-2">
-            Simulated upgrade — no real payment.
+            UPI, cards & net banking · powered by Razorpay (test mode)
           </div>
         </div>
       </div>
