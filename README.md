@@ -24,6 +24,28 @@ moodwave/
 - 🌍 **Language switcher** — searchable, persisted, and relabels the UI.
 - 📱 **Responsive** — desktop sidebar plus a mobile hamburger drawer + bottom nav.
 
+## What's completed so far
+
+The project has already reached a strong MVP and feature-complete state for local development, including:
+
+- Full authentication flow: sign-up, login, logout, forgot/reset password, and OTP verification.
+- A polished music experience: real queue playback, seek, shuffle/repeat, sleep timer, now-playing panel, and keyboard shortcuts.
+- Discovery and personalization: mood detection with a manual fallback, live search, recent searches, artist pages, and personalized library views.
+- Content management: playlist creation, song upload, likes, collaboration, and premium/profile/settings flows.
+- Payment and security hardening: Razorpay-backed premium checkout, secure cookie-based auth, rate limiting, and server-side verification for payments and audio streaming.
+
+## Security highlights
+
+Security work completed so far includes:
+
+- JWTs issued as `httpOnly` cookies and validated server-side.
+- Password hashing, input validation, Helmet, CORS allow-listing, and request throttling.
+- OTP sending with cooldowns and real email/SMS delivery paths.
+- Payment verification using server-side HMAC checks and masked card metadata.
+- An SSRF-guarded audio proxy for safe remote streaming.
+
+For the current security posture and next steps, see [SECURITY.md](SECURITY.md).
+
 ## Quick start
 
 Requires **Node 18+**. No local MongoDB needed — the server boots a
