@@ -152,6 +152,21 @@ describe("Auth", () => {
     expect(res.status).toBe(422);
   });
 
+  test("enforces a resend cooldown on rapid OTP requests", async () => {
+    const reg = await request(app).post("/auth/register").send(user);
+    const auth = bearer(reg.body.token);
+    const first = await request(app)
+      .post("/auth/otp/send")
+      .set(auth)
+      .send({ channel: "email" });
+    expect(first.status).toBe(200);
+    const second = await request(app)
+      .post("/auth/otp/send")
+      .set(auth)
+      .send({ channel: "email" });
+    expect(second.status).toBe(429);
+  });
+
   test("login sets an httpOnly token cookie", async () => {
     await request(app).post("/auth/register").send(user);
     const res = await request(app)

@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/seed/seed.js",
+    "db:clean": "node src/seed/clean.js",
     "test": "cross-env NODE_ENV=test jest --runInBand --forceExit"
   },
   "author": "",

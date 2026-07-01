@@ -12,6 +12,13 @@ const env = {
   // Razorpay (test). Key ID is public; secret must never reach the client.
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || "",
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || "",
+  // Resend (email) + Twilio (SMS) for OTP delivery. All server-side only.
+  RESEND_API_KEY: process.env.RESEND_API_KEY || "",
+  RESEND_FROM: process.env.RESEND_FROM || "Moodwave <onboarding@resend.dev>",
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || "",
+  TWILIO_API_KEY_SID: process.env.TWILIO_API_KEY_SID || "",
+  TWILIO_API_KEY_SECRET: process.env.TWILIO_API_KEY_SECRET || "",
+  TWILIO_FROM_NUMBER: process.env.TWILIO_FROM_NUMBER || "",
 };
 
 module.exports = env;

@@ -118,3 +118,11 @@ exports.removeSavedCard = asyncHandler(async (req, res) => {
   await user.save();
   return res.json({ message: "Saved card removed", user: user.toJSON() });
 });
+
+// Cancel the Premium subscription (revert to the Free plan).
+exports.cancelSubscription = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  user.isPremium = false;
+  await user.save();
+  return res.json({ message: "Subscription cancelled", user: user.toJSON() });
+});

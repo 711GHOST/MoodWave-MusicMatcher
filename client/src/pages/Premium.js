@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { getPaymentConfig, removeSavedCard } from "../api/payment";
+import { getPaymentConfig, removeSavedCard, cancelSubscription } from "../api/payment";
 import { detectCurrency } from "../utils/region";
 import { BRAND_INFO } from "../utils/cardBrand";
+import Spinner from "../components/shared/Spinner";
 
 const PERKS = [
   "Ad-free listening",
@@ -31,6 +32,8 @@ const Premium = () => {
   const navigate = useNavigate();
   const [price, setPrice] = useState("");
   const [removing, setRemoving] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     getPaymentConfig()
@@ -51,6 +54,20 @@ const Premium = () => {
       toast.error(e.message);
     } finally {
       setRemoving(false);
+    }
+  };
+
+  const cancelPremium = async () => {
+    setCancelling(true);
+    try {
+      await cancelSubscription();
+      await refreshUser();
+      toast.success("Your Premium subscription has been cancelled.");
+      setConfirmCancel(false);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -105,6 +122,47 @@ const Premium = () => {
             </button>
           </div>
         )}
+
+        <div className="mt-8 pt-6 border-t border-ink-800">
+          {confirmCancel ? (
+            <div className="bg-ink-850 border border-ink-800 rounded-xl p-4 text-left">
+              <div className="text-sm text-white font-semibold">
+                Cancel your Premium subscription?
+              </div>
+              <p className="text-xs text-ink-400 mt-1">
+                You'll go back to the Free plan and lose ad-free listening and your
+                badge. You can re-subscribe anytime.
+              </p>
+              <div className="flex items-center gap-3 mt-4">
+                <button
+                  onClick={cancelPremium}
+                  disabled={cancelling}
+                  className="flex items-center gap-2 bg-red-500/90 hover:bg-red-500 text-white font-bold px-5 py-2 rounded-full transition disabled:opacity-60"
+                >
+                  {cancelling ? (
+                    <Spinner size={16} className="text-white" />
+                  ) : (
+                    "Yes, cancel Premium"
+                  )}
+                </button>
+                <button
+                  onClick={() => setConfirmCancel(false)}
+                  disabled={cancelling}
+                  className="text-sm font-semibold text-ink-400 hover:text-white px-3"
+                >
+                  Keep Premium
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmCancel(true)}
+              className="text-sm font-semibold text-ink-500 hover:text-red-400 transition"
+            >
+              Cancel Premium subscription
+            </button>
+          )}
+        </div>
       </div>
     );
   }

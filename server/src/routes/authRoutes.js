@@ -1,10 +1,22 @@
 const express = require("express");
 const { body } = require("express-validator");
+const rateLimit = require("express-rate-limit");
 const validate = require("../middleware/validate");
 const { requireAuth } = require("../middleware/auth");
 const authController = require("../controllers/authController");
+const env = require("../config/env");
 
 const router = express.Router();
+
+// Tighter cap for code-sending endpoints (on top of the per-user cooldown).
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => env.NODE_ENV === "test",
+  message: { error: "Too many code requests. Please try again later." },
+});
 
 router.post(
   "/register",
@@ -34,6 +46,7 @@ router.post("/logout", authController.logout);
 
 router.post(
   "/forgot-password",
+  otpLimiter,
   [body("email").isEmail().withMessage("A valid email is required")],
   validate,
   authController.forgotPassword
@@ -83,6 +96,7 @@ router.patch(
 router.post(
   "/otp/send",
   requireAuth,
+  otpLimiter,
   [
     body("channel")
       .isIn(["email", "phone"])

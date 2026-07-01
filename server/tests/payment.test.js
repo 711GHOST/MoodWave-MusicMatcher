@@ -54,6 +54,19 @@ describe("Payment", () => {
     expect(res.status).toBe(400);
   });
 
+  test("cancels a Premium subscription", async () => {
+    const { token } = await createUser();
+    await request(app)
+      .post("/payment/confirm-demo")
+      .set(authHeader(token))
+      .send({});
+    const cancel = await request(app)
+      .post("/payment/cancel")
+      .set(authHeader(token));
+    expect(cancel.status).toBe(200);
+    expect(cancel.body.user.isPremium).toBe(false);
+  });
+
   test("removes a saved card", async () => {
     const { token } = await createUser();
     await request(app)

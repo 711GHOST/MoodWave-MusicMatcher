@@ -3,6 +3,17 @@ const User = require("../models/User");
 const { signToken } = require("../utils/token");
 const asyncHandler = require("../utils/asyncHandler");
 const env = require("../config/env");
+const { sendEmailOtp, sendSmsOtp } = require("../services/notify");
+
+// Only expose the raw code outside production (so local/dev flows stay testable).
+const exposeCode = (code) => (env.NODE_ENV === "production" ? undefined : code);
+// Seconds a user must wait between code requests.
+const OTP_RESEND_COOLDOWN_MS = 30 * 1000;
+const cooldownRemaining = (otp) => {
+  if (!otp || !otp.lastSentAt) return 0;
+  const elapsed = Date.now() - new Date(otp.lastSentAt).getTime();
+  return Math.max(0, Math.ceil((OTP_RESEND_COOLDOWN_MS - elapsed) / 1000));
+};
 
 const TOKEN_COOKIE = "token";
 // httpOnly so the JWT is never exposed to JavaScript (XSS-resistant).
@@ -121,13 +132,14 @@ exports.updateMe = asyncHandler(async (req, res) => {
 });
 
 // --- One-time passcode (OTP) verification for email / phone ---------------
-// Simulated: no real email/SMS is sent. The generated code is returned to the
-// client as `devCode` so the flow is fully demonstrable end-to-end.
+// Codes are delivered for real via Resend (email) / Twilio (SMS). Outside
+// production we also echo the code as `devCode` so local testing works even
+// when real delivery is limited (e.g. Resend needs a verified domain).
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 exports.sendOtp = asyncHandler(async (req, res) => {
   const channel = req.body.channel === "phone" ? "phone" : "email";
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).select("+otp");
 
   const target = channel === "phone" ? user.phone : user.email;
   if (!target) {
@@ -139,21 +151,43 @@ exports.sendOtp = asyncHandler(async (req, res) => {
     });
   }
 
+  // Resend cooldown.
+  const wait = cooldownRemaining(user.otp);
+  if (wait > 0) {
+    return res
+      .status(429)
+      .json({ error: `Please wait ${wait}s before requesting another code.` });
+  }
+
   const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
   user.otp = {
     codeHash: await bcrypt.hash(code, 10),
     channel,
     target,
     expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    lastSentAt: new Date(),
   };
   await user.save();
+
+  const result =
+    channel === "phone"
+      ? await sendSmsOtp(target, code)
+      : await sendEmailOtp(target, code, "verification");
+
+  // In production a failed send is a hard error (the user has no other way to
+  // get the code); in dev we still return devCode so the flow is testable.
+  if (!result.delivered && !result.skipped && env.NODE_ENV === "production") {
+    return res
+      .status(502)
+      .json({ error: "We couldn't send your code right now. Please try again." });
+  }
 
   return res.status(200).json({
     message: `A 6-digit code was sent to your ${channel}.`,
     channel,
     target,
-    // Demo only — a real deployment would never return the code.
-    devCode: code,
+    delivered: !!result.delivered,
+    devCode: exposeCode(code),
   });
 });
 
@@ -199,12 +233,18 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
 // --- Forgot / reset password (public, OTP-powered) ------------------------
 exports.forgotPassword = asyncHandler(async (req, res) => {
   const email = (req.body.email || "").toLowerCase().trim();
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select("+otp");
   // Always respond the same way so we don't reveal which emails are registered.
   const generic = {
     message: "If an account exists for that email, a reset code has been sent.",
   };
   if (!user) return res.status(200).json(generic);
+
+  // Silently rate-limit resends (returning the generic message avoids leaking
+  // that the address exists).
+  if (cooldownRemaining(user.otp) > 0) {
+    return res.status(200).json(generic);
+  }
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   user.otp = {
@@ -212,11 +252,13 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
     channel: "reset",
     target: email,
     expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    lastSentAt: new Date(),
   };
   await user.save();
 
-  // Demo only — a real deployment emails the code instead of returning it.
-  return res.status(200).json({ ...generic, devCode: code });
+  await sendEmailOtp(email, code, "password reset");
+
+  return res.status(200).json({ ...generic, devCode: exposeCode(code) });
 });
 
 exports.resetPassword = asyncHandler(async (req, res) => {

@@ -36,9 +36,10 @@ const userSchema = new mongoose.Schema(
     otp: {
       type: {
         codeHash: String,
-        channel: String, // "email" | "phone"
+        channel: String, // "email" | "phone" | "reset"
         target: String, // the email/phone the code was issued for
         expiresAt: Date,
+        lastSentAt: Date, // drives the resend cooldown
       },
       select: false,
       default: undefined,
