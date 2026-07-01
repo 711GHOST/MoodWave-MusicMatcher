@@ -14,17 +14,12 @@ import useSleepTimer from "../hooks/useSleepTimer";
 
 const PlayerContext = createContext(null);
 
-// When "Normalize volume" is on, apply a gentle, consistent gain so loud and
-// quiet tracks play at a more even level. (Simulated — true loudness
-// normalization would use per-track ReplayGain data from the server.)
-const NORMALIZE_GAIN = 0.9;
-
 // Orchestrates the playback queue (shuffle/repeat/next/prev), volume policy and
-// recently-played history. The Howl instance lives in useAudioEngine and the
-// countdown in useSleepTimer; this provider wires them to the queue.
+// recently-played history. The audio element + Web Audio graph live in
+// useAudioEngine (which applies the equalizer and volume-normalization for
+// real), and the countdown in useSleepTimer; this provider wires them together.
 export function PlayerProvider({ children }) {
   const { settings } = useSettings();
-  const normalizeRef = useRef(settings.normalizeVolume);
 
   const [queue, setQueue] = useState([]);
   const [index, setIndex] = useState(0);
@@ -43,13 +38,11 @@ export function PlayerProvider({ children }) {
   const preMuteVolumeRef = useRef(0.8);
   const handleEndRef = useRef(() => {});
 
-  // Effective gain applied to the engine, honoring mute + normalize-volume.
-  const effectiveVolume = useCallback((v) => {
-    if (mutedRef.current) return 0;
-    return normalizeRef.current ? v * NORMALIZE_GAIN : v;
-  }, []);
+  // Volume gain applied to the engine (mute just drops it to 0). Loudness
+  // normalization is handled separately by the engine's compressor.
+  const effectiveVolume = useCallback((v) => (mutedRef.current ? 0 : v), []);
 
-  // Audio engine (Howl) — stable method refs, current transport state.
+  // Audio engine — native element + Web Audio graph. Stable method refs.
   const {
     isPlaying,
     progress,
@@ -65,6 +58,8 @@ export function PlayerProvider({ children }) {
     hasSound: engineHasSound,
     playing: enginePlaying,
     currentSeek: engineCurrentSeek,
+    applyEqualizer,
+    setNormalize,
   } = useAudioEngine({
     onEnd: () => handleEndRef.current(),
     getGain: () => effectiveVolume(volumeRef.current),
@@ -76,11 +71,13 @@ export function PlayerProvider({ children }) {
       if (enginePlaying()) enginePause();
     });
 
-  // Re-apply gain whenever the normalize setting flips.
+  // Wire the Settings equalizer + normalize toggle to the Web Audio graph.
   useEffect(() => {
-    normalizeRef.current = settings.normalizeVolume;
-    engineSetGain(effectiveVolume(volumeRef.current));
-  }, [settings.normalizeVolume, effectiveVolume, engineSetGain]);
+    setNormalize(settings.normalizeVolume);
+  }, [settings.normalizeVolume, setNormalize]);
+  useEffect(() => {
+    applyEqualizer(settings.equalizer);
+  }, [settings.equalizer, applyEqualizer]);
 
   useEffect(() => {
     queueRef.current = queue;

@@ -1,126 +1,268 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Howl } from "howler";
+import { proxiedTrack } from "../utils/audioProxy";
 
-// Owns the Howl instance and the low-level transport state
-// (isPlaying / progress / duration). Queue, shuffle, repeat and volume policy
-// live in PlayerContext, which drives this engine imperatively and reacts to
-// `onEnd`. `getGain` returns the gain (0..1) to apply when a track loads.
+// Equalizer band centre frequencies (Hz), matching the Settings UI.
+const EQ_FREQS = [60, 150, 400, 1000, 2400, 15000];
+
+// Owns a single persistent <audio> element routed through a Web Audio graph:
+//   source -> 6 peaking filters (EQ) -> compressor (normalize) -> gain -> out
+// The graph is built lazily on first play (needs a user gesture + AudioContext);
+// where Web Audio is unavailable (e.g. jsdom) it falls back to plain playback.
 export default function useAudioEngine({ onEnd, getGain }) {
-  const soundRef = useRef(null);
+  const elRef = useRef(null);
+  const graphRef = useRef(null); // { ctx, source, bands[], compressor, gain }
+  const eqRef = useRef([0, 0, 0, 0, 0, 0]);
+  const normalizeRef = useRef(false);
+  const hasTrackRef = useRef(false);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Keep the latest callbacks without re-creating the engine.
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
   const getGainRef = useRef(getGain);
   getGainRef.current = getGain;
 
-  // Poll the playing sound for progress.
+  // Create the persistent audio element once.
+  useEffect(() => {
+    const el = new Audio();
+    el.crossOrigin = "anonymous"; // required so Web Audio can read the samples
+    el.preload = "auto";
+    elRef.current = el;
+
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      if (onEndRef.current) onEndRef.current();
+    };
+    const onLoaded = () => {
+      if (el.duration && !Number.isNaN(el.duration)) setDuration(el.duration);
+    };
+    el.addEventListener("play", onPlay);
+    el.addEventListener("pause", onPause);
+    el.addEventListener("ended", onEnded);
+    el.addEventListener("loadedmetadata", onLoaded);
+
+    return () => {
+      el.removeEventListener("play", onPlay);
+      el.removeEventListener("pause", onPause);
+      el.removeEventListener("ended", onEnded);
+      el.removeEventListener("loadedmetadata", onLoaded);
+      try {
+        el.pause();
+      } catch {
+        /* ignore */
+      }
+      el.removeAttribute("src");
+    };
+  }, []);
+
+  // Poll for progress while playing (matches the previous 250ms cadence).
   useEffect(() => {
     const id = setInterval(() => {
-      const s = soundRef.current;
-      if (s && s.playing()) {
-        setProgress(s.seek() || 0);
-        const d = s.duration();
-        if (d) setDuration(d);
+      const el = elRef.current;
+      if (el && !el.paused && hasTrackRef.current) {
+        setProgress(el.currentTime || 0);
+        if (el.duration && !Number.isNaN(el.duration)) setDuration(el.duration);
       }
     }, 250);
     return () => clearInterval(id);
   }, []);
 
-  // Unload audio on unmount.
-  useEffect(
-    () => () => {
-      if (soundRef.current) soundRef.current.unload();
-    },
-    []
-  );
+  const applyNormalize = (compressor, on) => {
+    if (on) {
+      compressor.threshold.value = -24;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 12;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+    } else {
+      // ratio 1 + threshold 0 => effectively transparent.
+      compressor.threshold.value = 0;
+      compressor.knee.value = 0;
+      compressor.ratio.value = 1;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+    }
+  };
 
-  const load = useCallback((song) => {
-    if (soundRef.current) {
-      soundRef.current.unload();
-      soundRef.current = null;
+  // Build the Web Audio graph once (returns null where unsupported).
+  const ensureGraph = useCallback(() => {
+    if (graphRef.current) return graphRef.current;
+    const el = elRef.current;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!el || !AC) return null;
+    try {
+      const ctx = new AC();
+      const source = ctx.createMediaElementSource(el);
+      const bands = EQ_FREQS.map((freq, i) => {
+        const f = ctx.createBiquadFilter();
+        f.type = "peaking";
+        f.frequency.value = freq;
+        f.Q.value = 1;
+        f.gain.value = eqRef.current[i] || 0;
+        return f;
+      });
+      const compressor = ctx.createDynamicsCompressor();
+      const gain = ctx.createGain();
+      gain.gain.value = getGainRef.current ? getGainRef.current() : 1;
+
+      let node = source;
+      bands.forEach((b) => {
+        node.connect(b);
+        node = b;
+      });
+      node.connect(compressor);
+      compressor.connect(gain);
+      gain.connect(ctx.destination);
+
+      applyNormalize(compressor, normalizeRef.current);
+      graphRef.current = { ctx, source, bands, compressor, gain };
+      // Dev-only handle so the Web Audio graph can be inspected during testing.
+      if (process.env.NODE_ENV !== "production") {
+        window.__mwAudio = graphRef.current;
+      }
+      return graphRef.current;
+    } catch {
+      return null; // fall back to element-only playback
     }
-    if (!song || !song.track) {
-      setIsPlaying(false);
-      return;
-    }
-    const sound = new Howl({
-      src: [song.track],
-      html5: true,
-      volume: getGainRef.current(),
-      onplay: () => {
-        setIsPlaying(true);
-        const d = sound.duration();
-        if (d) setDuration(d);
-      },
-      onpause: () => setIsPlaying(false),
-      onstop: () => setIsPlaying(false),
-      onend: () => onEndRef.current && onEndRef.current(),
-      onload: () => {
-        const d = sound.duration();
-        if (d) setDuration(d);
-      },
-      onloaderror: () => setIsPlaying(false),
-    });
-    soundRef.current = sound;
-    setProgress(0);
-    sound.play();
   }, []);
 
+  const resumeCtx = () => {
+    const g = graphRef.current;
+    if (g && g.ctx.state === "suspended") {
+      try {
+        g.ctx.resume();
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
+  const safePlay = (el) => {
+    try {
+      const p = el.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch {
+      /* jsdom / autoplay */
+    }
+  };
+
+  const load = useCallback(
+    (song) => {
+      const el = elRef.current;
+      if (!el) return;
+      if (!song || !song.track) {
+        hasTrackRef.current = false;
+        try {
+          el.pause();
+        } catch {
+          /* ignore */
+        }
+        setIsPlaying(false);
+        return;
+      }
+      hasTrackRef.current = true;
+      el.src = proxiedTrack(song.track);
+      setProgress(0);
+      const graph = ensureGraph();
+      if (graph) {
+        graph.gain.gain.value = getGainRef.current ? getGainRef.current() : 1;
+        resumeCtx();
+      } else {
+        el.volume = getGainRef.current ? getGainRef.current() : 1;
+      }
+      safePlay(el);
+    },
+    [ensureGraph]
+  );
+
   const pause = useCallback(() => {
-    if (soundRef.current) soundRef.current.pause();
+    try {
+      elRef.current?.pause();
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const resume = useCallback(() => {
-    if (soundRef.current) soundRef.current.play();
+    const el = elRef.current;
+    if (!el) return;
+    resumeCtx();
+    safePlay(el);
   }, []);
 
   const seek = useCallback((seconds) => {
-    const s = soundRef.current;
-    if (!s) return;
-    s.seek(seconds);
+    const el = elRef.current;
+    if (!el) return;
+    try {
+      el.currentTime = seconds;
+    } catch {
+      /* ignore */
+    }
     setProgress(seconds);
   }, []);
 
-  // Restart the current track from the beginning (used by repeat-one).
   const restart = useCallback(() => {
-    const s = soundRef.current;
-    if (!s) return;
-    s.seek(0);
-    s.play();
+    const el = elRef.current;
+    if (!el) return;
+    try {
+      el.currentTime = 0;
+    } catch {
+      /* ignore */
+    }
+    safePlay(el);
     setProgress(0);
   }, []);
 
   const setGain = useCallback((gain) => {
-    if (soundRef.current) soundRef.current.volume(gain);
+    const g = graphRef.current;
+    if (g) g.gain.gain.value = gain;
+    else if (elRef.current)
+      elRef.current.volume = Math.max(0, Math.min(1, gain));
   }, []);
 
   const stop = useCallback(() => {
-    if (soundRef.current) {
-      soundRef.current.stop();
-      soundRef.current.unload();
-      soundRef.current = null;
+    const el = elRef.current;
+    if (el) {
+      try {
+        el.pause();
+      } catch {
+        /* ignore */
+      }
+      el.removeAttribute("src");
     }
+    hasTrackRef.current = false;
     setIsPlaying(false);
     setProgress(0);
     setDuration(0);
   }, []);
 
-  // Flip the UI to "paused" without touching the audio (e.g. queue exhausted).
   const markStopped = useCallback(() => setIsPlaying(false), []);
-
-  const hasSound = useCallback(() => !!soundRef.current, []);
-  const playing = useCallback(
-    () => !!(soundRef.current && soundRef.current.playing()),
-    []
-  );
+  const hasSound = useCallback(() => hasTrackRef.current, []);
+  const playing = useCallback(() => {
+    const el = elRef.current;
+    return !!(el && !el.paused && hasTrackRef.current);
+  }, []);
   const currentSeek = useCallback(
-    () => (soundRef.current ? soundRef.current.seek() || 0 : 0),
+    () => (elRef.current ? elRef.current.currentTime || 0 : 0),
     []
   );
+
+  // --- Web Audio effects driven by Settings ------------------------------
+  const applyEqualizer = useCallback((bands) => {
+    eqRef.current = Array.isArray(bands) ? bands : [];
+    const g = graphRef.current;
+    if (g) g.bands.forEach((b, i) => (b.gain.value = eqRef.current[i] || 0));
+  }, []);
+
+  const setNormalize = useCallback((on) => {
+    normalizeRef.current = !!on;
+    const g = graphRef.current;
+    if (g) applyNormalize(g.compressor, !!on);
+  }, []);
 
   return {
     isPlaying,
@@ -137,5 +279,7 @@ export default function useAudioEngine({ onEnd, getGain }) {
     hasSound,
     playing,
     currentSeek,
+    applyEqualizer,
+    setNormalize,
   };
 }

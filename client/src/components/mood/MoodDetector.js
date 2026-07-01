@@ -4,7 +4,8 @@ import * as faceapi from "face-api.js";
 import { Icon } from "@iconify/react";
 import Spinner from "../shared/Spinner";
 
-const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
+// Self-hosted from client/public/models — works offline, no CDN dependency.
+const MODEL_URL = `${process.env.PUBLIC_URL || ""}/models`;
 
 const EXPRESSION_TO_EMOTION = {
   neutral: "neutral",
