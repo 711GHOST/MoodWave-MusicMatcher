@@ -13,6 +13,14 @@ require("./config/passport")(passport);
 
 const app = express();
 
+// In production the app runs behind a reverse proxy (Render), so the real
+// client IP arrives in the X-Forwarded-For header. Trust the first proxy hop
+// so req.ip and express-rate-limit key off the real client IP. Use 1 (first
+// hop) rather than true (trust all), which would let clients spoof the header.
+if (env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 app.use(helmet());
 app.use(cors({ origin: env.CLIENT_ORIGIN, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
