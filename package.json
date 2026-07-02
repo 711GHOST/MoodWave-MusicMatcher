@@ -2,7 +2,7 @@
   "name": "moodwave",
   "version": "1.0.0",
   "private": true,
-  "description": "Moodwave — mood-based music streaming app (React + Express + MongoDB)",
+  "description": "Moodwave - mood-based music streaming app (React + Express + MongoDB)",
   "scripts": {
     "dev": "concurrently -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "npm --prefix server run dev",

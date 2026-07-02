@@ -49,7 +49,7 @@ const PlayerBar = () => {
 
   return (
     <footer className="h-20 shrink-0 bg-ink-900 border-t border-ink-800 px-3 md:px-4 flex items-center gap-3 md:gap-4">
-      {/* Now playing — tapping the track opens the full-screen sheet on mobile */}
+      {/* Now playing - tapping the track opens the full-screen sheet on mobile */}
       <div className="flex items-center gap-3 w-1/3 md:w-1/4 min-w-0">
         <button
           onClick={openMobileNowPlaying}

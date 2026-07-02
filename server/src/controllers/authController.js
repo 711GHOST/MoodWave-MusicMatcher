@@ -23,7 +23,7 @@ const cooldownRemaining = (otp) => {
 const TOKEN_COOKIE = "token";
 // httpOnly so the JWT is never exposed to JavaScript (XSS-resistant).
 // In production the client and API live on different (sub)domains, so the auth
-// cookie must be SameSite=None to be sent on cross-site requests — and browsers
+// cookie must be SameSite=None to be sent on cross-site requests - and browsers
 // only accept SameSite=None when the cookie is also Secure (HTTPS). Locally we
 // stay on SameSite=Lax over http so dev works without TLS.
 const cookieOptions = () => {

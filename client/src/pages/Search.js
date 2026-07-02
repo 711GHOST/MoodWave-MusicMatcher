@@ -185,7 +185,7 @@ const Search = () => {
           <EmptyState
             icon="mdi:magnify"
             title="Search Moodwave"
-            subtitle="Find songs, playlists, and artists — then play them instantly."
+            subtitle="Find songs, playlists, and artists - then play them instantly."
           />
         )
       ) : total === 0 ? (

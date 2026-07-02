@@ -42,7 +42,7 @@ export function PlayerProvider({ children }) {
   // normalization is handled separately by the engine's compressor.
   const effectiveVolume = useCallback((v) => (mutedRef.current ? 0 : v), []);
 
-  // Audio engine — native element + Web Audio graph. Stable method refs.
+  // Audio engine - native element + Web Audio graph. Stable method refs.
   const {
     isPlaying,
     progress,
@@ -160,7 +160,7 @@ export function PlayerProvider({ children }) {
   const handleEnd = () => {
     const q = queueRef.current;
     const i = indexRef.current;
-    // Sleep timer "end of track" — stop instead of advancing.
+    // Sleep timer "end of track" - stop instead of advancing.
     if (consumeEndOfTrack()) {
       engineMarkStopped();
       return;

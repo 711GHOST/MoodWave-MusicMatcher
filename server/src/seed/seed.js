@@ -30,7 +30,7 @@ async function seedDatabase() {
     userByKey[u.key] = users[i];
   });
 
-  // Songs — `artist` is the performing-artist string; uploadedBy is the system.
+  // Songs - `artist` is the performing-artist string; uploadedBy is the system.
   const uploader = userByKey[data.songUploader]._id;
   const songDocs = data.songs.map((s) => ({
     name: s.name,
@@ -45,7 +45,7 @@ async function seedDatabase() {
     songByName[s.name] = s;
   });
 
-  // Playlists — built-in catalog, marked featured.
+  // Playlists - built-in catalog, marked featured.
   const owner = userByKey[data.playlistOwner]._id;
   const playlistDocs = data.playlists.map((p) => ({
     name: p.name,
@@ -71,7 +71,7 @@ async function seedIfEmpty() {
   return seedDatabase();
 }
 
-// `npm run seed` — seeds whatever database MONGODB_URI points at.
+// `npm run seed` - seeds whatever database MONGODB_URI points at.
 if (require.main === module) {
   (async () => {
     const { connectDB, disconnectDB } = require("../config/db");
@@ -79,7 +79,7 @@ if (require.main === module) {
       const { usingMemory } = await connectDB();
       if (usingMemory) {
         console.warn(
-          "Warning: no MONGODB_URI set — seeding a throwaway in-memory DB. " +
+          "Warning: no MONGODB_URI set - seeding a throwaway in-memory DB. " +
             "Set MONGODB_URI in .env to seed a persistent database."
         );
       }

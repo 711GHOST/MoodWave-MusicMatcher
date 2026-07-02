@@ -310,7 +310,7 @@ const strings = {
   },
 };
 
-// Right-to-left languages — flips the document direction.
+// Right-to-left languages - flips the document direction.
 export const RTL_LANGUAGES = new Set(["Arabic", "Urdu", "Hebrew", "Persian"]);
 
 export default strings;

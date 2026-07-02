@@ -112,7 +112,7 @@ const Checkout = () => {
     }
     if (!order?.orderId) {
       toast.info(
-        "Secure hosted checkout needs a test order in this currency — use a method above, or switch to ₹ INR."
+        "Secure hosted checkout needs a test order in this currency - use a method above, or switch to ₹ INR."
       );
       return;
     }
@@ -188,7 +188,7 @@ const Checkout = () => {
               ))}
             </select>
             <p className="text-[11px] text-ink-500 mt-1">
-              Priced automatically for your region — change it above.
+              Priced automatically for your region - change it above.
             </p>
           </div>
 
@@ -260,7 +260,7 @@ const Checkout = () => {
           </button>
 
           <p className="text-[11px] text-ink-500 mt-3 text-center">
-            Test mode — use Razorpay test credentials. Cards are validated locally
+            Test mode - use Razorpay test credentials. Cards are validated locally
             and never stored in full.
           </p>
         </div>

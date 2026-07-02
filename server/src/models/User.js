@@ -12,13 +12,13 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     userName: { type: String, required: true, unique: true, trim: true },
-    // Never returned by default — must be explicitly selected (login flow).
+    // Never returned by default - must be explicitly selected (login flow).
     password: { type: String, required: true, select: false },
     phone: { type: String, trim: true, default: "" },
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
     isPremium: { type: Boolean, default: false },
-    // Optional saved card — MASKED metadata only. We never store the full PAN
+    // Optional saved card - MASKED metadata only. We never store the full PAN
     // or CVV (that would require PCI-DSS compliance).
     savedCard: {
       type: {
@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema(
     likedSongs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
     likedPlaylists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Playlist" }],
     // One-time passcode for email/phone verification. Hashed; never returned.
-    // (Simulated channel — no real SMS/email provider is wired up.)
+    // (Simulated channel - no real SMS/email provider is wired up.)
     otp: {
       type: {
         codeHash: String,

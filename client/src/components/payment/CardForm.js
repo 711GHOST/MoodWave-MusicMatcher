@@ -138,7 +138,7 @@ const CardForm = ({ priceLabel, onPay, submitting }) => {
         />
         <span className="text-sm text-ink-300">
           Save this card for next time{" "}
-          <span className="text-ink-500">(optional — only the last 4 digits are stored)</span>
+          <span className="text-ink-500">(optional - only the last 4 digits are stored)</span>
         </span>
       </label>
 

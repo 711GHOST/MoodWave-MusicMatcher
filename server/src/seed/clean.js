@@ -2,7 +2,7 @@ const User = require("../models/User");
 const Song = require("../models/Song");
 const Playlist = require("../models/Playlist");
 
-// The accounts to preserve — the demo login and the system "Moodwave" catalog owner.
+// The accounts to preserve - the demo login and the system "Moodwave" catalog owner.
 const KEEP_EMAILS = ["demo@moodwave.app", "music@moodwave.app"];
 
 /**
@@ -33,7 +33,7 @@ async function cleanUsers() {
   };
 }
 
-// `npm run db:clean` — cleans whatever database MONGODB_URI points at.
+// `npm run db:clean` - cleans whatever database MONGODB_URI points at.
 if (require.main === module) {
   (async () => {
     const { connectDB, disconnectDB } = require("../config/db");
@@ -41,7 +41,7 @@ if (require.main === module) {
       const { usingMemory } = await connectDB();
       if (usingMemory) {
         console.warn(
-          "Warning: no MONGODB_URI set — this connected to a throwaway in-memory DB, " +
+          "Warning: no MONGODB_URI set - this connected to a throwaway in-memory DB, " +
             "so there is no persistent data to clean. The live dev server already " +
             "resets to a fresh seed on every restart. Set MONGODB_URI to clean a real database."
         );

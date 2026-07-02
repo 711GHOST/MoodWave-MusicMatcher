@@ -38,7 +38,7 @@ const CardScanner = ({ onScanned, onClose }) => {
   const scan = async () => {
     const shot = webcamRef.current?.getScreenshot();
     if (!shot) {
-      setStatus("Camera isn't ready yet — give it a moment.");
+      setStatus("Camera isn't ready yet - give it a moment.");
       return;
     }
     setBusy(true);
@@ -109,7 +109,7 @@ const CardScanner = ({ onScanned, onClose }) => {
           {busy ? "Scanning…" : "Capture & scan"}
         </button>
         <p className="text-xs text-ink-500 text-center">
-          For your security, the CVV is never scanned — enter it manually.
+          For your security, the CVV is never scanned - enter it manually.
         </p>
       </div>
     </Modal>

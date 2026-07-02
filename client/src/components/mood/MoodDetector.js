@@ -4,7 +4,7 @@ import * as faceapi from "face-api.js";
 import { Icon } from "@iconify/react";
 import Spinner from "../shared/Spinner";
 
-// Self-hosted from client/public/models — works offline, no CDN dependency.
+// Self-hosted from client/public/models - works offline, no CDN dependency.
 const MODEL_URL = `${process.env.PUBLIC_URL || ""}/models`;
 
 const EXPRESSION_TO_EMOTION = {
@@ -45,7 +45,7 @@ const MoodDetector = ({ onDetected }) => {
   const scan = async () => {
     const video = webcamRef.current?.video;
     if (!video || video.readyState !== 4) {
-      setStatus("Camera isn't ready yet — give it a moment and try again.");
+      setStatus("Camera isn't ready yet - give it a moment and try again.");
       return;
     }
     setScanning(true);
@@ -96,7 +96,7 @@ const MoodDetector = ({ onDetected }) => {
         )}
       </div>
       <p className="text-xs text-ink-500 text-center max-w-sm">
-        Your camera runs entirely in your browser — no images are uploaded or
+        Your camera runs entirely in your browser - no images are uploaded or
         stored.
       </p>
       {status && <p className="text-sm text-ink-300 text-center">{status}</p>}

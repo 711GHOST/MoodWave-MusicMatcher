@@ -23,7 +23,7 @@ const ContactRow = ({ label, value, verified, onVerify, verifyLabel }) => (
   <div className="flex items-center justify-between gap-3 border-b border-ink-800 pb-2">
     <dt className="text-ink-400">{label}</dt>
     <dd className="flex items-center gap-2 text-white font-medium min-w-0">
-      <span className="truncate">{value || "—"}</span>
+      <span className="truncate">{value || "-"}</span>
       {value &&
         (verified ? (
           <span className="flex items-center gap-1 text-xs text-brand font-semibold shrink-0">
@@ -76,7 +76,7 @@ const Profile = () => {
         year: "numeric",
         month: "long",
       })
-    : "—";
+    : "-";
   const likedCount = user?.likedSongs?.length || 0;
 
   const save = async () => {

@@ -6,7 +6,7 @@ function notFound(req, res) {
 
 // eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
-  // Duplicate key (unique index) — e.g. email/userName already taken.
+  // Duplicate key (unique index) - e.g. email/userName already taken.
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || {})[0] || "field";
     return res

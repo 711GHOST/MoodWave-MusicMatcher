@@ -16,7 +16,7 @@ const FEATURES = [
   {
     icon: "mdi:music-circle",
     title: "A full player",
-    text: "Queue, shuffle, repeat, seek and volume — everything you expect.",
+    text: "Queue, shuffle, repeat, seek and volume - everything you expect.",
   },
 ];
 

@@ -4,8 +4,8 @@ const env = require("./env");
 let memoryServer = null;
 
 /**
- * Connects mongoose to either the configured MONGODB_URI, or — when none is
- * provided — a self-contained in-memory MongoDB. This lets the app run and be
+ * Connects mongoose to either the configured MONGODB_URI, or - when none is
+ * provided - a self-contained in-memory MongoDB. This lets the app run and be
  * tested with zero external setup.
  */
 async function connectDB() {

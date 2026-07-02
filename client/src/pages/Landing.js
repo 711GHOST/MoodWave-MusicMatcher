@@ -46,7 +46,7 @@ const Landing = () => (
         </span>
       </h1>
       <p className="mt-6 text-lg text-ink-400 max-w-2xl mx-auto">
-        Moodwave reads how you feel — with a quick camera scan or a tap — and
+        Moodwave reads how you feel - with a quick camera scan or a tap - and
         cues up the perfect playlist for the moment. Stream, build playlists,
         and let your emotions pick the soundtrack.
       </p>
@@ -55,7 +55,7 @@ const Landing = () => (
           to="/signup"
           className="bg-brand hover:bg-brand-light text-black font-bold px-8 py-4 rounded-full transition flex items-center gap-2"
         >
-          <Icon icon="mdi:rocket-launch" width={22} /> Get started — it's free
+          <Icon icon="mdi:rocket-launch" width={22} /> Get started - it's free
         </Link>
         <Link
           to="/login"
@@ -65,7 +65,7 @@ const Landing = () => (
         </Link>
       </div>
       <p className="mt-6 text-xs text-ink-500">
-        Try the demo account — email{" "}
+        Try the demo account - email{" "}
         <span className="text-ink-300">demo@moodwave.app</span> / password{" "}
         <span className="text-ink-300">Demo@1234</span>
       </p>
@@ -87,7 +87,7 @@ const Landing = () => (
         {
           icon: "mdi:music-circle",
           title: "Full player",
-          text: "Queue, shuffle, repeat, seek and volume — all the essentials.",
+          text: "Queue, shuffle, repeat, seek and volume - all the essentials.",
         },
       ].map((f) => (
         <div

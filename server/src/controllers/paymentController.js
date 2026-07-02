@@ -11,7 +11,7 @@ const authHeader = () =>
     "base64"
   );
 
-// Keep only non-sensitive, masked card metadata — never the full PAN or CVV.
+// Keep only non-sensitive, masked card metadata - never the full PAN or CVV.
 const sanitizeCard = (card = {}) => {
   const digits = String(card.number || "").replace(/\D/g, "");
   return {

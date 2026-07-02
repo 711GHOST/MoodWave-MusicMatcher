@@ -1,7 +1,7 @@
 # 🎵 Moodwave
 
 Music that matches your mood. Moodwave is a full-stack music streaming app
-(MERN) that recommends a playlist based on how you feel — detected in your
+(MERN) that recommends a playlist based on how you feel - detected in your
 browser with a quick camera scan, or chosen manually.
 
 ```
@@ -12,17 +12,17 @@ moodwave/
 
 ## Features
 
-- 🔐 **Secure auth** — JWT (with expiry), hashed passwords (bcryptjs), input
+- 🔐 **Secure auth** - JWT (with expiry), hashed passwords (bcryptjs), input
   validation, helmet, CORS allow-list and auth rate-limiting.
-- 🎚️ **Real player** — one persistent audio engine with a true queue:
+- 🎚️ **Real player** - one persistent audio engine with a true queue:
   play / pause, **next / previous through the actual queue**, seek (click + drag),
   volume, shuffle and repeat, and auto-advance.
-- 🙂 **Mood detection** — in-browser face-expression analysis (`face-api.js`)
+- 🙂 **Mood detection** - in-browser face-expression analysis (`face-api.js`)
   with a manual mood picker fallback; maps your emotion to a curated playlist.
-- 📚 **Playlists & library** — browse, create, add/remove songs, like songs,
+- 📚 **Playlists & library** - browse, create, add/remove songs, like songs,
   upload your own tracks, and search.
-- 🌍 **Language switcher** — searchable, persisted, and relabels the UI.
-- 📱 **Responsive** — desktop sidebar plus a mobile hamburger drawer + bottom nav.
+- 🌍 **Language switcher** - searchable, persisted, and relabels the UI.
+- 📱 **Responsive** - desktop sidebar plus a mobile hamburger drawer + bottom nav.
 
 ## What's completed so far
 
@@ -48,7 +48,7 @@ For the current security posture and next steps, see [SECURITY.md](SECURITY.md).
 
 ## Quick start
 
-Requires **Node 18+**. No local MongoDB needed — the server boots a
+Requires **Node 18+**. No local MongoDB needed - the server boots a
 self-contained in-memory database (seeded with sample songs and mood playlists)
 when `MONGODB_URI` is empty.
 
@@ -101,5 +101,5 @@ cd server && npm test        # Jest + supertest over an in-memory MongoDB
 ## Notes
 
 - The first run downloads an in-memory `mongod` binary and the face-api model
-  weights (from a CDN) — this needs an internet connection once.
+  weights (from a CDN) - this needs an internet connection once.
 - Rotate any real secrets before deploying.

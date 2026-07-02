@@ -5,7 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { artistName, onImgError } from "../../utils/format";
 
 // `onPlay` starts playback (typically playQueue(list, index)).
-// `onRemove(song)` is optional — when provided, a trash action is shown
+// `onRemove(song)` is optional - when provided, a trash action is shown
 // (used in My Music and in playlists you own).
 const SongRow = ({ song, index, onPlay, onRemove }) => {
   const { currentSong, isPlaying, togglePlay, addToQueue } = usePlayer();

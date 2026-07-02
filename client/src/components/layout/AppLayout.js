@@ -30,7 +30,7 @@ const AppLayout = () => {
     setMobileNavOpen(false);
   }, [location.pathname]);
 
-  // "Show the now-playing panel on click of play" — open the panel when
+  // "Show the now-playing panel on click of play" - open the panel when
   // playback starts (a fresh session: no song -> song) if the setting is on.
   useEffect(() => {
     const id = currentSong?._id || null;
@@ -57,9 +57,9 @@ const AppLayout = () => {
         {currentSong && nowPlayingOpen && <NowPlayingPanel />}
       </div>
       {currentSong && <PlayerBar />}
-      {/* Full-screen now-playing sheet — mobile only */}
+      {/* Full-screen now-playing sheet - mobile only */}
       <MobileNowPlaying />
-      {/* Bottom tab bar — mobile only */}
+      {/* Bottom tab bar - mobile only */}
       <MobileNav />
       {/* First-time welcome */}
       {justRegistered && (

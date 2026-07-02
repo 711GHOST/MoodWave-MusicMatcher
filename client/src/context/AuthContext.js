@@ -7,7 +7,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  // True only right after a fresh sign-up — drives the welcome modal.
+  // True only right after a fresh sign-up - drives the welcome modal.
   const [justRegistered, setJustRegistered] = useState(false);
 
   // Restore a session from the httpOnly cookie on first load. If the cookie is

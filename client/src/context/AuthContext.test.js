@@ -1,7 +1,7 @@
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { AuthProvider, useAuth } from "./AuthContext";
 
-// The provider talks to the API only through this module — mock it.
+// The provider talks to the API only through this module - mock it.
 jest.mock("../api/auth", () => ({
   getMe: jest.fn(),
   login: jest.fn(),

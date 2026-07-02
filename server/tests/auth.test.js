@@ -181,7 +181,7 @@ describe("Auth", () => {
     const agent = request.agent(app); // persists cookies across requests
     await agent.post("/auth/register").send(user);
 
-    // No Authorization header — the cookie alone authorizes the request.
+    // No Authorization header - the cookie alone authorizes the request.
     const me = await agent.get("/auth/me");
     expect(me.status).toBe(200);
     expect(me.body.user.email).toBe(user.email);

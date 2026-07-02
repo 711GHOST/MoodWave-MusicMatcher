@@ -27,7 +27,7 @@ const UploadSong = () => {
     try {
       await createSong({
         name: name.trim(),
-        // The performing artist is whoever sang it — entered here, not the
+        // The performing artist is whoever sang it - entered here, not the
         // uploader's account name.
         artist: artist.trim(),
         thumbnail: thumbnail.trim(),

@@ -36,7 +36,7 @@ const UpiPanel = ({ priceLabel, amountMajor, onPay, submitting }) => {
         )}
         <div className="flex items-center gap-2 text-xs text-ink-500">
           <Icon icon="mdi:information-outline" width={14} />
-          Demo QR for test mode — no real money moves.
+          Demo QR for test mode - no real money moves.
         </div>
       </div>
 

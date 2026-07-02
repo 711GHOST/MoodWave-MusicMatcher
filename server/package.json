@@ -1,7 +1,7 @@
 {
   "name": "moodwave-server",
   "version": "1.0.0",
-  "description": "Moodwave API — secure Express/Mongoose backend for the mood-based music app",
+  "description": "Moodwave API - secure Express/Mongoose backend for the mood-based music app",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
