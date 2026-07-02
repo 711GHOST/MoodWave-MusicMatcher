@@ -22,13 +22,20 @@ const cooldownRemaining = (otp) => {
 
 const TOKEN_COOKIE = "token";
 // httpOnly so the JWT is never exposed to JavaScript (XSS-resistant).
-const cookieOptions = () => ({
-  httpOnly: true,
-  secure: env.NODE_ENV === "production",
-  sameSite: "lax",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, matches JWT_EXPIRES_IN
-  path: "/",
-});
+// In production the client and API live on different (sub)domains, so the auth
+// cookie must be SameSite=None to be sent on cross-site requests — and browsers
+// only accept SameSite=None when the cookie is also Secure (HTTPS). Locally we
+// stay on SameSite=Lax over http so dev works without TLS.
+const cookieOptions = () => {
+  const crossSite = env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: crossSite,
+    sameSite: crossSite ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, matches JWT_EXPIRES_IN
+    path: "/",
+  };
+};
 
 // Issue the JWT as an httpOnly cookie. The token is also returned in the body
 // for non-browser clients (and the existing test suite).
