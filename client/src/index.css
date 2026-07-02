@@ -65,3 +65,26 @@ input[type="range"].mw-range::-moz-range-thumb {
   border-radius: 50%;
   background: #ffffff;
 }
+
+/* Google Website Translate widget: we drive it programmatically, so hide all
+   of its injected chrome (top banner, gadget, hover tooltip) and undo the
+   body offset / text highlight it would otherwise add to the page. The banner
+   is an <iframe class="skiptranslate"> (its other classes are obfuscated and
+   change between builds, so target the stable one). */
+iframe.skiptranslate,
+.goog-te-banner-frame,
+.goog-te-gadget-icon,
+#goog-gt-tt,
+.goog-tooltip,
+.goog-tooltip:hover,
+#google_translate_element {
+  display: none !important;
+}
+body {
+  top: 0 !important;
+  position: static !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}

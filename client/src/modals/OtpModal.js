@@ -6,8 +6,9 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 
 // Verifies an email address or phone number via a 6-digit one-time passcode.
-// The code is simulated server-side and echoed back as `devCode`, which we
-// surface as a demo hint so the flow is testable without a real SMS/email gateway.
+// Real users receive the code via SMS/email; only the demo account gets it
+// echoed back as `devCode` (shown here as a hint) since it can't receive real
+// messages. For everyone else this hint never appears.
 const OtpModal = ({ channel, target, onClose, onVerified }) => {
   const { sendOtp, verifyOtp } = useAuth();
   const toast = useToast();

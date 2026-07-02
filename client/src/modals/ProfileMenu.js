@@ -32,10 +32,13 @@ const ProfileMenu = ({ onClose }) => {
   return (
     <div className="absolute right-0 top-12 w-56 bg-ink-800 border border-ink-700 rounded-xl shadow-2xl p-2 z-30 animate-scale-in">
       <div className="px-3 py-2 border-b border-ink-700 mb-1">
-        <div className="text-white font-semibold text-sm truncate flex items-center gap-2">
-          {user?.firstName} {user?.lastName}
+        <div className="flex items-center gap-2">
+          <div className="text-white font-semibold text-sm truncate flex-1 min-w-0">
+            {user?.firstName} {user?.lastName}
+          </div>
+
           {user?.isPremium && (
-            <span className="text-[10px] bg-brand text-black font-bold px-1.5 py-0.5 rounded-full">
+            <span className="shrink-0 text-[10px] bg-brand text-black font-bold px-1.5 py-0.5 rounded-full">
               PREMIUM
             </span>
           )}

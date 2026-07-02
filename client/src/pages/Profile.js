@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -235,39 +234,6 @@ const Profile = () => {
           </button>
         )}
       </div>
-
-      <Link
-        to="/settings"
-        className="mt-4 flex items-center justify-between gap-4 rounded-2xl p-5 bg-ink-850 border border-ink-800 hover:border-brand transition"
-      >
-        <div className="flex items-center gap-3">
-          <Icon icon="mdi:cog-outline" width={24} className="text-ink-300" />
-          <div>
-            <div className="font-bold text-white">Settings</div>
-            <div className="text-sm text-ink-400">
-              Audio quality, language, playback, privacy and more.
-            </div>
-          </div>
-        </div>
-        <Icon icon="mdi:chevron-right" width={24} className="text-ink-400" />
-      </Link>
-
-      {!user?.isPremium && (
-        <Link
-          to="/premium"
-          className="mt-4 block rounded-2xl p-6 bg-gradient-to-r from-brand/20 to-accent/20 border border-ink-800 hover:border-brand transition"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="font-bold text-white">Upgrade to Premium</div>
-              <div className="text-sm text-ink-300">
-                Ad-free, a profile badge, and support Moodwave.
-              </div>
-            </div>
-            <Icon icon="mdi:crown" width={28} className="text-brand" />
-          </div>
-        </Link>
-      )}
 
       {otp && (
         <OtpModal

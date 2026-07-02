@@ -5,8 +5,13 @@ const asyncHandler = require("../utils/asyncHandler");
 const env = require("../config/env");
 const { sendEmailOtp, sendSmsOtp } = require("../services/notify");
 
-// Only expose the raw code outside production (so local/dev flows stay testable).
-const exposeCode = (code) => (env.NODE_ENV === "production" ? undefined : code);
+// The demo account can't receive real SMS/email, so it keeps the on-screen code
+// hint for anyone trying the app. Real users always get their code delivered for
+// real (Resend/Twilio) and never see it echoed back. Tests also need the code
+// echoed since notify.js no-ops there.
+const DEMO_EMAIL = "demo@moodwave.app";
+const exposeCode = (code, email) =>
+  env.NODE_ENV === "test" || email === DEMO_EMAIL ? code : undefined;
 // Seconds a user must wait between code requests.
 const OTP_RESEND_COOLDOWN_MS = 30 * 1000;
 const cooldownRemaining = (otp) => {
@@ -187,7 +192,7 @@ exports.sendOtp = asyncHandler(async (req, res) => {
     channel,
     target,
     delivered: !!result.delivered,
-    devCode: exposeCode(code),
+    devCode: exposeCode(code, user.email),
   });
 });
 
@@ -258,7 +263,7 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
 
   await sendEmailOtp(email, code, "password reset");
 
-  return res.status(200).json({ ...generic, devCode: exposeCode(code) });
+  return res.status(200).json({ ...generic, devCode: exposeCode(code, email) });
 });
 
 exports.resetPassword = asyncHandler(async (req, res) => {
