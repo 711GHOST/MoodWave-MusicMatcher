@@ -48,6 +48,10 @@ password: Demo@1234
 - Cover-image upload via Cloudinary (widget + URL fallback + live preview).
 - A seeded featured catalog owned by a system account; personalized "your library" views.
 
+**Albums & mood tagging**
+- **Albums** group songs under a singer / band / group / movie — browse featured albums on Home, create your own with a song picker, and play them end-to-end.
+- **Mood tags** chosen at upload (happy, sad, angry, neutral, surprise, fear, disgust) automatically add the song to each tagged mood's playlist. A song can carry several moods and so appear in several mood playlists at once; the tags render as chips on every song row.
+
 **Search**
 - Unified search across songs, playlists, and artists, with **live/debounced** results, recent-search history, artist pages, and infinite scroll + pagination.
 
@@ -122,6 +126,7 @@ Seed a **persistent** (Atlas) database once:
 
 ```bash
 cd server && npm run seed        # wipes + recreates demo account + catalog
+# npm run migrate                # non-destructive: backfill song moods + add albums (safe on a live DB)
 # npm run db:clean               # keep demo + system account, remove other users
 ```
 

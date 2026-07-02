@@ -134,4 +134,65 @@ const playlists = [
   },
 ];
 
-module.exports = { users, songs, playlists, songUploader, playlistOwner };
+// Albums group a set of songs under a singer / band / group / movie. Song lists
+// reference song names (resolved to ids at seed time). The `moods` on each song
+// are derived from the mood-playlist membership above (see seed.js).
+const albums = [
+  {
+    title: "Arijit Essentials",
+    artist: "Arijit Singh",
+    kind: "singer",
+    year: 2024,
+    thumbnail: cover("arijit"),
+    songs: ["Bandeya Re Bandeya", "Satranga", "O Maahi"],
+  },
+  {
+    title: "Bright Days",
+    artist: "Sunny Days",
+    kind: "band",
+    year: 2023,
+    thumbnail: cover("brightdays"),
+    songs: ["Sunshine Avenue", "Golden Hour", "Confetti", "Plot Twist"],
+  },
+  {
+    title: "After Hours",
+    artist: "Blue Hour",
+    kind: "band",
+    year: 2023,
+    thumbnail: cover("afterhours"),
+    songs: ["Rainy Window", "Letting Go", "Midnight Blue"],
+  },
+  {
+    title: "High Voltage",
+    artist: "Voltage",
+    kind: "group",
+    year: 2022,
+    thumbnail: cover("highvoltage"),
+    songs: ["Adrenaline", "Breaking Point", "Storm Chaser"],
+  },
+  {
+    title: "Wide Open",
+    artist: "Ambient Co.",
+    kind: "group",
+    year: 2024,
+    thumbnail: cover("wideopen"),
+    songs: ["Still Waters", "Open Road", "Deep Focus"],
+  },
+  {
+    title: "Animal (Soundtrack)",
+    artist: "Animal",
+    kind: "movie",
+    year: 2023,
+    thumbnail: cover("animalost"),
+    songs: ["Satranga", "O Maahi"],
+  },
+];
+
+module.exports = {
+  users,
+  songs,
+  playlists,
+  albums,
+  songUploader,
+  playlistOwner,
+};

@@ -30,6 +30,8 @@ import Premium from "./pages/Premium";
 import Checkout from "./pages/Checkout";
 import Settings from "./pages/Settings";
 import Artist from "./pages/Artist";
+import Album from "./pages/Album";
+import CreateAlbum from "./pages/CreateAlbum";
 
 function AppRoutes() {
   const { loading, isAuthenticated } = useAuth();
@@ -68,6 +70,8 @@ function AppRoutes() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/playlist/:playlistId" element={<PlaylistView />} />
           <Route path="/artist/:name" element={<Artist />} />
+          <Route path="/album/create" element={<CreateAlbum />} />
+          <Route path="/album/:albumId" element={<Album />} />
         </Route>
       </Route>
 

@@ -47,6 +47,7 @@ app.get("/health", (req, res) =>
 app.use("/auth", authLimiter, require("./routes/authRoutes"));
 app.use("/song", require("./routes/songRoutes"));
 app.use("/playlist", require("./routes/playlistRoutes"));
+app.use("/album", require("./routes/albumRoutes"));
 app.use("/search", require("./routes/searchRoutes"));
 app.use("/payment", require("./routes/paymentRoutes"));
 app.use("/audio", require("./routes/audioRoutes"));

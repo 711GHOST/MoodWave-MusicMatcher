@@ -1,20 +1,41 @@
 const Song = require("../models/Song");
 const User = require("../models/User");
+const Playlist = require("../models/Playlist");
+const Album = require("../models/Album");
 const asyncHandler = require("../utils/asyncHandler");
 const { parsePageParams, paginated } = require("../utils/paginate");
+const { EMOTIONS } = require("../constants/emotions");
 
 // Escape user input before using it inside a RegExp (avoids regex injection/ReDoS).
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// Keep only known emotions, de-duplicated.
+const sanitizeMoods = (moods) =>
+  Array.isArray(moods)
+    ? [...new Set(moods.filter((m) => EMOTIONS.includes(m)))]
+    : [];
+
 exports.create = asyncHandler(async (req, res) => {
   const { name, artist, thumbnail, track } = req.body;
+  const moods = sanitizeMoods(req.body.moods);
   const song = await Song.create({
     name,
     artist,
     thumbnail,
     track,
+    moods,
     uploadedBy: req.user._id,
   });
+
+  // A tagged song automatically joins the matching mood playlist(s), so it can
+  // belong to several mood playlists at once.
+  if (moods.length) {
+    await Playlist.updateMany(
+      { emotion: { $in: moods }, isFeatured: true },
+      { $addToSet: { songs: song._id } }
+    );
+  }
+
   return res.status(201).json(song);
 });
 
@@ -91,5 +112,10 @@ exports.remove = asyncHandler(async (req, res) => {
       .json({ error: "You can only delete songs you uploaded" });
   }
   await song.deleteOne();
+  // Drop the now-dangling reference from any playlists/albums that held it.
+  await Promise.all([
+    Playlist.updateMany({ songs: songId }, { $pull: { songs: songId } }),
+    Album.updateMany({ songs: songId }, { $pull: { songs: songId } }),
+  ]);
   return res.status(200).json({ message: "Song deleted" });
 });

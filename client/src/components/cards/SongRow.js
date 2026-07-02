@@ -3,6 +3,7 @@ import { usePlayer } from "../../context/PlayerContext";
 import { useUI } from "../../context/UIContext";
 import { useToast } from "../../context/ToastContext";
 import { artistName, onImgError } from "../../utils/format";
+import MoodTags from "../shared/MoodTags";
 
 // `onPlay` starts playback (typically playQueue(list, index)).
 // `onRemove(song)` is optional - when provided, a trash action is shown
@@ -57,8 +58,11 @@ const SongRow = ({ song, index, onPlay, onRemove }) => {
           <div className={`text-sm truncate ${isCurrent ? "text-brand" : "text-white"}`}>
             {song.name}
           </div>
-          <div className="text-xs text-ink-500 truncate">
-            {artistName(song.artist)}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs text-ink-500 truncate">
+              {artistName(song.artist)}
+            </span>
+            <MoodTags moods={song.moods} className="hidden sm:flex shrink-0" />
           </div>
         </div>
       </div>

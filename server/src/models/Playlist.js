@@ -1,15 +1,6 @@
 const mongoose = require("mongoose");
-
 // Emotions correspond to face-api.js expressions, mapped to a mood playlist each.
-const EMOTIONS = [
-  "happy",
-  "sad",
-  "angry",
-  "neutral",
-  "surprise",
-  "fear",
-  "disgust",
-];
+const { EMOTIONS } = require("../constants/emotions");
 
 const playlistSchema = new mongoose.Schema(
   {

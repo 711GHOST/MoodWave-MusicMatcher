@@ -7,6 +7,7 @@ import CoverImageField from "../components/shared/CoverImageField";
 import Spinner from "../components/shared/Spinner";
 import { createSong } from "../api/songs";
 import { useToast } from "../context/ToastContext";
+import { MOODS } from "../utils/moods";
 
 const UploadSong = () => {
   const [name, setName] = useState("");
@@ -14,9 +15,15 @@ const UploadSong = () => {
   const [thumbnail, setThumbnail] = useState("");
   const [trackUrl, setTrackUrl] = useState("");
   const [trackName, setTrackName] = useState("");
+  const [moods, setMoods] = useState([]);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
+
+  const toggleMood = (key) =>
+    setMoods((prev) =>
+      prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key]
+    );
 
   const submit = async () => {
     if (!name.trim() || !artist.trim() || !thumbnail.trim() || !trackUrl.trim()) {
@@ -32,8 +39,13 @@ const UploadSong = () => {
         artist: artist.trim(),
         thumbnail: thumbnail.trim(),
         track: trackUrl.trim(),
+        moods,
       });
-      toast.success("Song uploaded!");
+      toast.success(
+        moods.length
+          ? "Song uploaded and added to your tagged mood playlists!"
+          : "Song uploaded!"
+      );
       navigate("/my-music");
     } catch (e) {
       toast.error(e.message);
@@ -101,6 +113,40 @@ const UploadSong = () => {
               />
             </div>
           )}
+        </div>
+
+        <div>
+          <div className="text-sm font-semibold text-white mb-1">
+            Mood tags{" "}
+            <span className="font-normal text-ink-500">
+              (optional — auto-adds the song to each mood's playlist)
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {MOODS.map((m) => {
+              const active = moods.includes(m.key);
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => toggleMood(m.key)}
+                  aria-pressed={active}
+                  className="px-3 py-1.5 rounded-full text-sm font-semibold border transition"
+                  style={
+                    active
+                      ? {
+                          backgroundColor: `${m.color}26`,
+                          color: m.color,
+                          borderColor: m.color,
+                        }
+                      : {}
+                  }
+                >
+                  <span className={active ? "" : "text-ink-400"}>{m.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <button

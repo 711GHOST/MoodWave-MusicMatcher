@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { getFeaturedPlaylists } from "../api/playlists";
+import { getFeaturedAlbums } from "../api/albums";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { usePlayer } from "../context/PlayerContext";
@@ -12,6 +13,7 @@ import {
   RECENTLY_PLAYED_EVENT,
 } from "../utils/recentlyPlayed";
 import PlaylistCard from "../components/cards/PlaylistCard";
+import AlbumCard from "../components/cards/AlbumCard";
 import Spinner from "../components/shared/Spinner";
 import EmptyState from "../components/shared/EmptyState";
 
@@ -26,6 +28,7 @@ const Section = ({ title, children }) => (
 
 const Home = () => {
   const [playlists, setPlaylists] = useState([]);
+  const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recent, setRecent] = useState(() => getRecentlyPlayed());
   const { user } = useAuth();
@@ -33,8 +36,11 @@ const Home = () => {
   const { playQueue } = usePlayer();
 
   useEffect(() => {
-    getFeaturedPlaylists()
-      .then((r) => setPlaylists(r.data || []))
+    Promise.all([getFeaturedPlaylists(), getFeaturedAlbums()])
+      .then(([pl, al]) => {
+        setPlaylists(pl.data || []);
+        setAlbums(al.data || []);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -144,6 +150,13 @@ const Home = () => {
             <Section title={t("featured")}>
               {featured.map((p) => (
                 <PlaylistCard key={p._id} playlist={p} />
+              ))}
+            </Section>
+          )}
+          {albums.length > 0 && (
+            <Section title="Albums">
+              {albums.map((a) => (
+                <AlbumCard key={a._id} album={a} />
               ))}
             </Section>
           )}

@@ -3,6 +3,7 @@ const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { requireAuth } = require("../middleware/auth");
 const songController = require("../controllers/songController");
+const { EMOTIONS } = require("../constants/emotions");
 
 const router = express.Router();
 
@@ -18,6 +19,14 @@ router.post(
       .withMessage("Artist / singer name is required"),
     body("thumbnail").trim().notEmpty().withMessage("Thumbnail is required"),
     body("track").trim().notEmpty().withMessage("Track URL is required"),
+    body("moods")
+      .optional()
+      .isArray()
+      .withMessage("Moods must be a list"),
+    body("moods.*")
+      .optional()
+      .isIn(EMOTIONS)
+      .withMessage("Unknown mood tag"),
   ],
   validate,
   songController.create

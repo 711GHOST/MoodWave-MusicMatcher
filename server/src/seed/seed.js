@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Song = require("../models/Song");
 const Playlist = require("../models/Playlist");
+const Album = require("../models/Album");
 const data = require("./data");
 
 /**
@@ -12,6 +13,7 @@ async function seedDatabase() {
     User.deleteMany({}),
     Song.deleteMany({}),
     Playlist.deleteMany({}),
+    Album.deleteMany({}),
   ]);
 
   // Users (passwords hashed like real signups).
@@ -30,6 +32,16 @@ async function seedDatabase() {
     userByKey[u.key] = users[i];
   });
 
+  // Derive each song's mood tags from the mood-playlist it appears in, so a
+  // song's `moods` and its mood-playlist membership stay in sync from the start.
+  const moodsByName = {};
+  data.playlists.forEach((p) => {
+    if (!p.emotion) return;
+    p.songs.forEach((name) => {
+      (moodsByName[name] = moodsByName[name] || new Set()).add(p.emotion);
+    });
+  });
+
   // Songs - `artist` is the performing-artist string; uploadedBy is the system.
   const uploader = userByKey[data.songUploader]._id;
   const songDocs = data.songs.map((s) => ({
@@ -37,6 +49,7 @@ async function seedDatabase() {
     artist: s.artist,
     thumbnail: s.thumbnail,
     track: s.track,
+    moods: [...(moodsByName[s.name] || [])],
     uploadedBy: uploader,
   }));
   const songs = await Song.create(songDocs);
@@ -44,6 +57,8 @@ async function seedDatabase() {
   songs.forEach((s) => {
     songByName[s.name] = s;
   });
+  const idsFor = (names) =>
+    names.map((name) => songByName[name]?._id).filter(Boolean);
 
   // Playlists - built-in catalog, marked featured.
   const owner = userByKey[data.playlistOwner]._id;
@@ -53,14 +68,34 @@ async function seedDatabase() {
     owner,
     emotion: p.emotion || null,
     isFeatured: true,
-    songs: p.songs.map((name) => songByName[name]?._id).filter(Boolean),
+    songs: idsFor(p.songs),
   }));
   await Playlist.create(playlistDocs);
+
+  // Albums - built-in catalog, marked featured. Also set each song's reverse
+  // `album` pointer to its (last-seeded) album.
+  const albumDocs = (data.albums || []).map((a) => ({
+    title: a.title,
+    artist: a.artist,
+    kind: a.kind,
+    year: a.year,
+    thumbnail: a.thumbnail,
+    owner,
+    isFeatured: true,
+    songs: idsFor(a.songs),
+  }));
+  const albums = await Album.create(albumDocs);
+  await Promise.all(
+    albums.map((album) =>
+      Song.updateMany({ _id: { $in: album.songs } }, { album: album._id })
+    )
+  );
 
   return {
     users: users.length,
     songs: songs.length,
     playlists: playlistDocs.length,
+    albums: albums.length,
   };
 }
 
